@@ -1,0 +1,198 @@
+"""Parameterized Cypher query library for asset management analytics.
+
+These queries demonstrate the power of graph-based analytics for investment
+management — answering relationship questions that would require complex
+multi-table joins or be impossible in traditional relational SQL.
+
+All queries use parameters ($variable) to prevent injection and enable caching.
+"""
+
+# ============================================================
+# PORTFOLIO EXPLORATION
+# ============================================================
+
+LIST_PORTFOLIOS = """
+MATCH (p:Portfolio)
+OPTIONAL MATCH (p)-[:TRACKS]->(b:Benchmark)
+RETURN p.portfolio_id AS portfolio_id, p.name AS name,
+       p.asset_class AS asset_class, p.aum AS aum,
+       p.morningstar_rating AS morningstar_rating,
+       b.name AS benchmark
+ORDER BY p.name
+"""
+
+PORTFOLIO_FULL_PROFILE = """
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})
+OPTIONAL MATCH (p)-[:TRACKS]->(b:Benchmark)
+OPTIONAL MATCH (p)-[:MANAGED_BY]->(fm:FundManager)-[:WORKS_FOR]->(e:Entity)
+OPTIONAL MATCH (p)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+RETURN p {.*, benchmark: b.name, benchmark_id: b.benchmark_id,
+          manager: fm.name, entity: e.name,
+          esg_score: esg.overall_score, esg_risk: esg.risk_level}
+"""
+
+PORTFOLIO_HOLDINGS_WITH_SECTORS = """
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[h:HOLDS]->(a:Asset)
+OPTIONAL MATCH (a)-[:BELONGS_TO]->(s:Sector)
+RETURN a.name AS asset_name, a.isin AS isin, h.weight_pct AS weight_pct,
+       s.name AS sector, a.country AS country, a.asset_type AS asset_type
+ORDER BY h.weight_pct DESC
+"""
+
+PORTFOLIO_NETWORK = """
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[r*1..2]-(connected)
+WITH p, connected, [rel IN r | type(rel)] AS rel_types
+RETURN DISTINCT labels(connected)[0] AS label,
+       connected {.*} AS properties,
+       rel_types
+LIMIT 100
+"""
+
+
+# ============================================================
+# PEER COMPARISON
+# ============================================================
+
+FIND_PEERS = """
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[:PEER_OF]-(peer:Portfolio)
+RETURN peer.name AS peer_name, peer.portfolio_id AS peer_id,
+       peer.aum AS aum, peer.morningstar_rating AS rating
+ORDER BY peer.morningstar_rating DESC
+"""
+
+PEER_HOLDING_OVERLAP = """
+MATCH (p1:Portfolio {portfolio_id: $portfolio_id})-[:HOLDS]->(a:Asset)<-[:HOLDS]-(p2:Portfolio)
+WHERE p1 <> p2
+WITH p2, COLLECT(a.name) AS shared_holdings, COUNT(a) AS overlap_count
+RETURN p2.name AS peer, p2.portfolio_id AS peer_id,
+       overlap_count, shared_holdings
+ORDER BY overlap_count DESC
+LIMIT 10
+"""
+
+
+# ============================================================
+# ESG ANALYSIS
+# ============================================================
+
+ESG_CONTROVERSY_EXPOSURE = """
+MATCH (p:Portfolio)-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+WHERE esg.controversy_score <= $max_controversy
+WITH p, COLLECT(DISTINCT a.name) AS controversial_assets, COUNT(a) AS count
+RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id, count, controversial_assets
+ORDER BY count DESC
+"""
+
+ESG_CROSS_PORTFOLIO_RISK = """
+MATCH (a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+WHERE esg.risk_level IN ['High', 'Severe']
+WITH a, esg
+MATCH (p:Portfolio)-[:HOLDS]->(a)
+WITH a.name AS asset, a.isin AS isin, esg.risk_level AS risk,
+     COLLECT(DISTINCT p.name) AS exposed_portfolios
+WHERE SIZE(exposed_portfolios) > 1
+RETURN asset, isin, risk, exposed_portfolios, SIZE(exposed_portfolios) AS exposure_count
+ORDER BY exposure_count DESC
+"""
+
+PORTFOLIO_ESG_VS_BENCHMARK = """
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[:HAS_ESG_SCORE]->(p_esg:ESGRating)
+MATCH (p)-[:TRACKS]->(b:Benchmark)-[:HAS_ESG_SCORE]->(b_esg:ESGRating)
+RETURN p.name AS portfolio, p_esg.overall_score AS portfolio_esg,
+       b.name AS benchmark, b_esg.overall_score AS benchmark_esg,
+       p_esg.overall_score - b_esg.overall_score AS esg_differential
+"""
+
+EU_TAXONOMY_ALIGNMENT = """
+MATCH (p:Portfolio)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+WHERE esg.taxonomy_alignment_pct IS NOT NULL
+RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id,
+       esg.taxonomy_alignment_pct AS taxonomy_pct,
+       esg.overall_score AS esg_score
+ORDER BY esg.taxonomy_alignment_pct DESC
+"""
+
+
+# ============================================================
+# BENCHMARK ANALYSIS
+# ============================================================
+
+BENCHMARK_SECTOR_BREAKDOWN = """
+MATCH (b:Benchmark {benchmark_id: $benchmark_id})-[c:COMPOSED_OF]->(a:Asset)-[:BELONGS_TO]->(s:Sector)
+WITH s.name AS sector, SUM(c.weight_pct) AS total_weight, COUNT(a) AS count
+RETURN sector, total_weight, count
+ORDER BY total_weight DESC
+"""
+
+BENCHMARK_COMPOSITION_OVERLAP = """
+MATCH (b1:Benchmark {benchmark_id: $benchmark_id_1})-[:COMPOSED_OF]->(a:Asset)<-[:COMPOSED_OF]-(b2:Benchmark {benchmark_id: $benchmark_id_2})
+WITH COLLECT(a.name) AS shared, COUNT(a) AS overlap
+RETURN shared, overlap
+"""
+
+
+# ============================================================
+# CROSS-ENTITY & CONCENTRATION ANALYSIS
+# ============================================================
+
+CROSS_ENTITY_CONCENTRATION = """
+MATCH (e:Entity)<-[:WORKS_FOR]-(fm:FundManager)<-[:MANAGED_BY]-(p:Portfolio)-[:HOLDS]->(a:Asset)
+WITH a, COLLECT(DISTINCT e.name) AS entities, COLLECT(DISTINCT p.name) AS portfolios
+WHERE SIZE(entities) > 1
+RETURN a.name AS asset, a.isin AS isin, entities, portfolios,
+       SIZE(entities) AS entity_count
+ORDER BY entity_count DESC
+LIMIT 20
+"""
+
+ENTITY_AUM_BREAKDOWN = """
+MATCH (e:Entity)<-[:WORKS_FOR]-(fm:FundManager)<-[:MANAGED_BY]-(p:Portfolio)
+WITH e.name AS entity, SUM(p.aum) AS total_aum, COUNT(p) AS fund_count,
+     COLLECT(p.name) AS funds
+RETURN entity, total_aum, fund_count, funds
+ORDER BY total_aum DESC
+"""
+
+
+# ============================================================
+# RELATIONSHIP DISCOVERY
+# ============================================================
+
+SHORTEST_PATH_BETWEEN_PORTFOLIOS = """
+MATCH path = shortestPath(
+    (p1:Portfolio {portfolio_id: $portfolio_id_1})-[*]-(p2:Portfolio {portfolio_id: $portfolio_id_2})
+)
+RETURN [n IN nodes(path) | {label: labels(n)[0], name: n.name}] AS nodes,
+       [r IN relationships(path) | type(r)] AS relationships,
+       length(path) AS path_length
+"""
+
+FUND_MANAGER_STYLE_SIMILARITY = """
+MATCH (fm1:FundManager {manager_id: $manager_id})<-[:MANAGED_BY]-(p1:Portfolio)-[:HOLDS]->(a:Asset)<-[:HOLDS]-(p2:Portfolio)-[:MANAGED_BY]->(fm2:FundManager)
+WHERE fm1 <> fm2
+WITH fm2, COUNT(DISTINCT a) AS shared_holdings, COLLECT(DISTINCT a.name) AS common_assets
+RETURN fm2.name AS similar_manager, fm2.manager_id AS manager_id,
+       shared_holdings, common_assets[..5] AS top_common_assets
+ORDER BY shared_holdings DESC
+LIMIT 5
+"""
+
+# ============================================================
+# GRAPH VISUALIZATION (returns nodes + edges for frontend)
+# ============================================================
+
+GRAPH_OVERVIEW = """
+MATCH (n)
+WITH labels(n)[0] AS label, COUNT(*) AS count
+RETURN label, count
+ORDER BY count DESC
+"""
+
+SUBGRAPH_AROUND_NODE = """
+MATCH (center {portfolio_id: $node_id})-[r]-(neighbor)
+RETURN center {.*, _label: labels(center)[0], _id: id(center)} AS source,
+       type(r) AS relationship,
+       r {.*} AS rel_properties,
+       neighbor {.*, _label: labels(neighbor)[0], _id: id(neighbor)} AS target
+LIMIT 50
+"""
