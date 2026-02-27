@@ -68,7 +68,7 @@ class Asset(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    isin: str = Field(..., pattern=r"^[A-Z]{2}[A-Z0-9]{9}\d$", description="ISIN (primary key)")
+    isin: str = Field(..., pattern=r"^[A-Z]{2}[A-Z0-9]{10}$", description="ISIN or synthetic identifier")
     name: str = Field(..., min_length=1)
     ticker: str | None = None
     asset_type: AssetType = AssetType.COMMON_STOCK

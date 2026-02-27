@@ -22,6 +22,19 @@ from amkg.models.enums import AssetClass, AssetType
 from amkg.models.nodes import Asset, Benchmark, Holding, Portfolio
 from amkg.pipeline.fetchers.ishares import ISHARES_ETFS
 
+# ISO 3166-1 alpha-2 mapping for iShares "Location" values
+COUNTRY_MAP: dict[str, str] = {
+    "netherlands": "NL", "germany": "DE", "france": "FR", "spain": "ES",
+    "italy": "IT", "united kingdom": "GB", "switzerland": "CH", "sweden": "SE",
+    "denmark": "DK", "finland": "FI", "belgium": "BE", "norway": "NO",
+    "ireland": "IE", "austria": "AT", "portugal": "PT", "luxembourg": "LU",
+    "united states": "US", "japan": "JP", "australia": "AU", "canada": "CA",
+    "hong kong": "HK", "singapore": "SG", "south korea": "KR", "taiwan": "TW",
+    "china": "CN", "india": "IN", "brazil": "BR", "mexico": "MX",
+    "south africa": "ZA", "poland": "PL", "czech republic": "CZ",
+    "hungary": "HU", "greece": "GR", "new zealand": "NZ", "israel": "IL",
+}
+
 
 class ETFTransformResult:
     """Container for all domain objects extracted from one ETF CSV."""
@@ -38,15 +51,7 @@ class ETFTransformer:
     """Parse iShares CSV files into graph-ready domain objects."""
 
     def transform(self, csv_path: Path, ticker: str) -> ETFTransformResult:
-        """Parse one ETF holdings CSV into domain models.
-
-        Args:
-            csv_path: Path to the raw iShares CSV file.
-            ticker: ETF ticker (e.g., "IMAE") used to look up metadata.
-
-        Returns:
-            ETFTransformResult with portfolio, benchmark, assets, and holdings.
-        """
+        """Parse one ETF holdings CSV into domain models."""
         result = ETFTransformResult()
         etf_info = ISHARES_ETFS.get(ticker, {})
 
@@ -54,7 +59,6 @@ class ETFTransformer:
             logger.error(f"Unknown ETF ticker: {ticker}")
             return result
 
-        # Parse the CSV — iShares format has metadata rows at the top
         df = self._parse_ishares_csv(csv_path)
         if df is None or df.empty:
             logger.warning(f"No holdings data parsed from {csv_path}")
@@ -62,6 +66,7 @@ class ETFTransformer:
 
         as_of_date = self._extract_date(csv_path) or date.today()
         asset_class = AssetClass(etf_info["asset_class"])
+        has_isin = "ISIN" in df.columns
 
         # Create Portfolio node
         result.portfolio = Portfolio(
@@ -86,37 +91,54 @@ class ETFTransformer:
 
         # Process each holding row
         for _, row in df.iterrows():
-            isin = self._clean_isin(row.get("ISIN", ""))
+            # Determine identifier: prefer ISIN, fall back to synthetic from ticker
+            if has_isin:
+                isin = self._clean_isin(row.get("ISIN", ""))
+            else:
+                isin = self._synthetic_isin(row.get("Ticker", ""))
+
             if not isin:
                 continue
 
             name = str(row.get("Name", row.get("Issuer Name", "Unknown"))).strip()
+            if not name or name in ("nan", "Unknown", "-", ""):
+                continue
+
             weight = self._parse_float(row.get("Weight (%)", row.get("Weight", 0)))
             market_val = self._parse_float(
                 row.get("Market Value", row.get("Notional Value", 0))
             )
             sector_name = str(row.get("Sector", "")).strip()
-            country = str(row.get("Location", row.get("Country", ""))).strip()
-            asset_type_str = str(row.get("Asset Class", "Equity")).strip()
+            if sector_name in ("nan", "", "-"):
+                sector_name = ""
 
-            # Determine asset type
+            # Map location to country code
+            location = str(row.get("Location", row.get("Country", ""))).strip()
+            country = self._map_country(location)
+
+            asset_type_str = str(row.get("Asset Class", "Equity")).strip()
             asset_type = self._map_asset_type(asset_type_str)
 
-            # Create Asset
-            ticker_val = str(row.get("Ticker", "")).strip() or None
+            ticker_val = str(row.get("Ticker", "")).strip()
+            if ticker_val in ("nan", ""):
+                ticker_val = None
+
+            currency = str(row.get("Market Currency", row.get("Currency", "EUR"))).strip()
+            if currency in ("nan", ""):
+                currency = "EUR"
+
             result.assets.append(
                 Asset(
                     isin=isin,
                     name=name,
                     ticker=ticker_val,
                     asset_type=asset_type,
-                    currency=str(row.get("Currency", "EUR")).strip()[:3] or "EUR",
-                    country=country[:2] if len(country) >= 2 else None,
+                    currency=currency[:3],
+                    country=country,
                     sector=sector_name or None,
                 )
             )
 
-            # Create Holding
             if weight > 0:
                 result.holdings.append(
                     Holding(
@@ -128,7 +150,6 @@ class ETFTransformer:
                     )
                 )
 
-            # Track sectors
             if sector_name:
                 result.sectors.add(sector_name)
 
@@ -141,36 +162,44 @@ class ETFTransformer:
     def _parse_ishares_csv(self, csv_path: Path) -> pd.DataFrame | None:
         """Parse iShares CSV, skipping metadata header rows."""
         try:
-            text = csv_path.read_text(encoding="utf-8", errors="replace")
+            text = csv_path.read_text(encoding="utf-8-sig", errors="replace")
             lines = text.strip().split("\n")
 
-            # Find the header row (first row with "Name" or "Ticker" in it)
+            # Find the header row
             header_idx = None
             for i, line in enumerate(lines):
-                if "Ticker" in line and ("Name" in line or "ISIN" in line):
+                line_upper = line.upper()
+                if "TICKER" in line_upper and "NAME" in line_upper:
                     header_idx = i
                     break
-                if "ISIN" in line and "Weight" in line:
+                if "ISIN" in line_upper and "WEIGHT" in line_upper:
                     header_idx = i
                     break
 
             if header_idx is None:
-                # Fallback: try reading with pandas auto-detection
                 logger.warning(f"Could not find header row in {csv_path}, trying auto-detect")
-                return pd.read_csv(csv_path, encoding="utf-8", on_bad_lines="skip")
+                return pd.read_csv(csv_path, encoding="utf-8-sig", on_bad_lines="skip")
 
             df = pd.read_csv(
                 csv_path,
                 skiprows=header_idx,
-                encoding="utf-8",
+                encoding="utf-8-sig",
                 on_bad_lines="skip",
                 thousands=",",
             )
 
-            # Drop rows where ISIN is missing or clearly not a holding
+            # Clean column names
+            df.columns = [c.strip() for c in df.columns]
+
+            # Drop rows that are clearly not holdings (totals, disclaimers)
+            if "Name" in df.columns:
+                df = df.dropna(subset=["Name"])
+                df = df[~df["Name"].astype(str).str.contains("Total|Disclaimer|Cash|^$", case=False, na=True)]
+
+            # Drop rows where ISIN exists but is invalid
             if "ISIN" in df.columns:
                 df = df.dropna(subset=["ISIN"])
-                df = df[df["ISIN"].str.len() == 12]
+                df = df[df["ISIN"].astype(str).str.len() == 12]
 
             return df
 
@@ -181,13 +210,12 @@ class ETFTransformer:
     def _extract_date(self, csv_path: Path) -> date | None:
         """Try to extract the as-of date from the CSV header metadata."""
         try:
-            with csv_path.open(encoding="utf-8", errors="replace") as f:
+            with csv_path.open(encoding="utf-8-sig", errors="replace") as f:
                 for line in f:
                     if "Fund Holdings as of" in line or "As Of Date" in line:
-                        # Try to parse date from the line
                         for part in line.split(","):
-                            part = part.strip().strip('"')
-                            for fmt in ("%b %d %Y", "%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y"):
+                            part = part.strip().strip('"').strip()
+                            for fmt in ("%d/%b/%Y", "%b %d %Y", "%m/%d/%Y", "%Y-%m-%d", "%d/%m/%Y"):
                                 try:
                                     return datetime.strptime(part, fmt).date()
                                 except ValueError:
@@ -205,6 +233,20 @@ class ETFTransformer:
         return None
 
     @staticmethod
+    def _synthetic_isin(ticker_val: object) -> str | None:
+        """Generate a synthetic ISIN-like identifier from a ticker when ISIN is unavailable."""
+        t = str(ticker_val).strip().upper()
+        if not t or t == "NAN" or len(t) < 1:
+            return None
+        # Remove spaces and special characters, keep only alphanumeric
+        t = "".join(c for c in t if c.isalnum())
+        if not t:
+            return None
+        # Pad to 10 chars with zeros, prefix with XX for synthetic
+        padded = t[:10].ljust(10, "0")
+        return f"XX{padded}"
+
+    @staticmethod
     def _parse_float(val: object) -> float:
         """Safely parse a float from CSV values that may contain commas or blanks."""
         if pd.isna(val):
@@ -214,6 +256,21 @@ class ETFTransformer:
             return float(s)
         except ValueError:
             return 0.0
+
+    @staticmethod
+    def _map_country(location: str) -> str | None:
+        """Map iShares Location field to ISO 3166-1 alpha-2 code."""
+        if not location or location in ("nan", "", "-"):
+            return None
+        loc_lower = location.lower()
+        if loc_lower in COUNTRY_MAP:
+            return COUNTRY_MAP[loc_lower]
+        # Try partial match
+        for key, code in COUNTRY_MAP.items():
+            if key in loc_lower:
+                return code
+        # Return first 2 chars as fallback
+        return location[:2].upper() if len(location) >= 2 else None
 
     @staticmethod
     def _map_asset_type(raw: str) -> AssetType:
