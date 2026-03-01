@@ -79,6 +79,11 @@ export default function PortfolioDetailPage() {
         <span className="text-slate-300">{portfolio.name}</span>
       </div>
 
+      {/* Explainer */}
+      <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+        This view traverses the graph outward from this portfolio — its holdings via HOLDS relationships, sector allocation via BELONGS_TO, benchmark via TRACKS, and peer portfolios that share common assets.
+      </p>
+
       {/* Portfolio Header */}
       <div className="rounded-xl border border-slate-800 bg-[#0d1321] p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -86,19 +91,13 @@ export default function PortfolioDetailPage() {
             <h1 className="text-xl font-semibold">{portfolio.name}</h1>
             <p className="text-sm text-slate-500 mt-1">{portfolio.portfolio_id}</p>
           </div>
-          {portfolio.morningstar_rating != null && (
-            <div className="text-amber-400 text-lg">
-              {"★".repeat(portfolio.morningstar_rating)}
-              <span className="text-slate-600">{"★".repeat(5 - portfolio.morningstar_rating)}</span>
-            </div>
-          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 mt-6">
           <InfoItem label="Asset Class" value={portfolio.asset_class} />
           <InfoItem label="AUM" value={portfolio.aum != null ? `$${(portfolio.aum / 1e9).toFixed(2)}B` : null} />
+          <InfoItem label="Valuation Date" value={portfolio.as_of_date} />
           <InfoItem label="Benchmark" value={portfolio.benchmark} />
-          <InfoItem label="Manager" value={portfolio.manager} />
         </div>
 
         {/* ESG Section */}

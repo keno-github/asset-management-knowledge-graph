@@ -26,10 +26,15 @@ def list_portfolios(neo4j: Neo4jDep) -> list[dict]:
 @router.get("/{portfolio_id}", response_model=PortfolioDetail)
 def get_portfolio(portfolio_id: str, neo4j: Neo4jDep) -> dict:
     """Full portfolio profile with benchmark, manager, and ESG data."""
-    results = neo4j.run_query(q.PORTFOLIO_FULL_PROFILE, {"portfolio_id": portfolio_id})
-    if not results:
-        raise HTTPException(status_code=404, detail=f"Portfolio '{portfolio_id}' not found")
-    return results[0]
+    try:
+        results = neo4j.run_query(q.PORTFOLIO_FULL_PROFILE, {"portfolio_id": portfolio_id})
+        if not results:
+            raise HTTPException(status_code=404, detail=f"Portfolio '{portfolio_id}' not found")
+        return results[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching portfolio: {e}") from e
 
 
 @router.get("/{portfolio_id}/holdings", response_model=list[HoldingResponse])

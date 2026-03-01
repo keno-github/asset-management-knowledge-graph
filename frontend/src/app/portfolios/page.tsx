@@ -30,6 +30,11 @@ export default function PortfoliosPage() {
         <p className="text-sm text-slate-500 mt-1">Browse ETF portfolios and their holdings</p>
       </div>
 
+      {/* Explainer */}
+      <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+        Each row is an ETF portfolio ingested from the data pipeline. Click a portfolio name to see its full holdings, sector allocation, and peer overlap — all derived from graph relationships in Neo4j.
+      </p>
+
       {/* Search */}
       <div className="relative max-w-sm">
         <input
@@ -49,7 +54,7 @@ export default function PortfoliosPage() {
               <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Name</th>
               <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Asset Class</th>
               <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider text-right">AUM</th>
-              <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider text-center">Rating</th>
+              <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Valuation Date</th>
               <th className="px-5 py-3 text-xs font-medium text-slate-500 uppercase tracking-wider">Benchmark</th>
             </tr>
           </thead>
@@ -88,12 +93,8 @@ export default function PortfoliosPage() {
                   <td className="px-5 py-4 text-right text-slate-300 font-mono text-xs">
                     {p.aum != null ? `$${(p.aum / 1e9).toFixed(1)}B` : "—"}
                   </td>
-                  <td className="px-5 py-4 text-center">
-                    {p.morningstar_rating != null ? (
-                      <span className="text-amber-400 text-xs">{"★".repeat(p.morningstar_rating)}</span>
-                    ) : (
-                      <span className="text-slate-700">—</span>
-                    )}
+                  <td className="px-5 py-4 text-slate-400 text-xs">
+                    {p.as_of_date ?? "—"}
                   </td>
                   <td className="px-5 py-4 text-slate-500 text-xs truncate max-w-[200px]">
                     {p.benchmark ?? "—"}

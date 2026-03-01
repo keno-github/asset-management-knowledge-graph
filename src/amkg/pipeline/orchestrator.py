@@ -11,6 +11,8 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 
 from loguru import logger
@@ -18,9 +20,11 @@ from loguru import logger
 from amkg.config import settings
 from amkg.graph.client import Neo4jClient
 from amkg.graph.schema import create_schema
+from amkg.pipeline.fetchers.esg_kaggle import ESGKaggleLoader
 from amkg.pipeline.fetchers.ishares import ISharesFetcher
 from amkg.pipeline.fetchers.yfinance_enricher import YFinanceEnricher
 from amkg.pipeline.loader import GraphLoader
+from amkg.pipeline.transformers.esg_transformer import ESGTransformer
 from amkg.pipeline.transformers.etf_transformer import ETFTransformer, ETFTransformResult
 from amkg.pipeline.validators.quality import run_quality_checks
 
@@ -38,6 +42,8 @@ class PipelineOrchestrator:
         self.data_dir = data_dir or settings.DATA_DIR
         self.skip_yfinance = skip_yfinance
         self._transform_results: list[ETFTransformResult] = []
+        self.run_id: str = str(uuid.uuid4())
+        self.ingested_at: str = datetime.now(timezone.utc).isoformat()
 
     def run(self) -> dict:
         """Execute the pipeline and return a summary report."""
@@ -68,8 +74,13 @@ class PipelineOrchestrator:
             logger.info("=" * 60)
             report["load"] = self._load()
 
+        report["lineage"] = {
+            "run_id": self.run_id,
+            "ingested_at": self.ingested_at,
+        }
         logger.info("=" * 60)
         logger.info("PIPELINE COMPLETE")
+        logger.info(f"Run ID: {self.run_id}")
         logger.info(f"Summary: {report}")
         logger.info("=" * 60)
         return report
@@ -144,7 +155,9 @@ class PipelineOrchestrator:
             # Create schema (indexes + constraints)
             create_schema(client)
 
-            loader = GraphLoader(client)
+            loader = GraphLoader(
+                client, run_id=self.run_id, ingested_at=self.ingested_at
+            )
             counts: dict[str, int] = {}
 
             # Collect all objects across ETFs
@@ -205,6 +218,40 @@ class PipelineOrchestrator:
                         counts["yfinance_enriched"] = loader.enrich_assets_from_yfinance(
                             enrichments
                         )
+
+            # Load ESG ratings (Kaggle CSV + sector-based fallback)
+            logger.info("Loading ESG ratings...")
+            esg_transformer = ESGTransformer()
+
+            # Build ticker -> ISIN mapping from our assets
+            ticker_to_isin: dict[str, str] = {}
+            for a in all_assets:
+                if a.ticker:
+                    ticker_to_isin[a.ticker.upper()] = a.isin
+
+            all_esg_ratings = []
+
+            # Try Kaggle CSV first
+            esg_fetcher = ESGKaggleLoader(self.data_dir)
+            esg_files = esg_fetcher.fetch()
+            for esg_result in esg_files:
+                kaggle_ratings = esg_transformer.transform_kaggle(
+                    Path(esg_result.file_path), ticker_to_isin
+                )
+                all_esg_ratings.extend(kaggle_ratings)
+
+            # Generate sector-based ESG for uncovered assets
+            covered_isins = {r.entity_id for r in all_esg_ratings}
+            # Deduplicate assets by ISIN
+            unique_assets = list({a.isin: a for a in all_assets}.values())
+            sector_ratings = esg_transformer.generate_sector_based(
+                unique_assets, covered_isins
+            )
+            all_esg_ratings.extend(sector_ratings)
+
+            if all_esg_ratings:
+                counts["esg_ratings"] = loader.load_esg_ratings(all_esg_ratings)
+                counts["esg_relationships"] = loader.load_has_esg_score(all_esg_ratings)
 
             # Final stats
             stats = client.get_stats()

@@ -19,9 +19,15 @@ import type {
   ESGCrossRisk,
   GraphStats,
   Holding,
+  LineageResponse,
+  OntologySummary,
+  OntologyVersionHistory,
   PeerOverlap,
   PortfolioDetail,
   PortfolioSummary,
+  ReasoningResult,
+  SKOSConceptScheme,
+  SparqlResult,
   TaxonomyAlignment,
 } from "./types";
 
@@ -44,7 +50,18 @@ export const api = {
 
   // Discovery
   graphOverview: () => fetchAPI<{ label: string; count: number }[]>("/api/discovery/graph-overview"),
-  subgraph: (nodeId: string) => fetchAPI<Record<string, unknown>[]>(`/api/discovery/subgraph/${nodeId}`),
+  subgraph: (nodeId: number) =>
+    fetchAPI<{ source: Record<string, unknown>; relationship: string; target: Record<string, unknown> }[]>(
+      `/api/discovery/subgraph/${nodeId}`
+    ),
+  initialGraph: () =>
+    fetchAPI<{ source: Record<string, unknown>; relationship: string; target: Record<string, unknown> }[]>(
+      "/api/discovery/initial-graph"
+    ),
+  searchNodes: (query: string) =>
+    fetchAPI<{ id: number; label: string; name: string }[]>(
+      `/api/discovery/search-nodes?q=${encodeURIComponent(query)}`
+    ),
 
   // Chat
   chat: (question: string) =>
@@ -52,4 +69,26 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ question }),
     }),
+
+  // Ontology & Vocabulary
+  getOntologySummary: () => fetchAPI<OntologySummary>("/ontology"),
+  getVocabulary: (name: string) => fetchAPI<SKOSConceptScheme>(`/api/vocabulary/${name}`),
+  getLineage: (label: string, id: string) =>
+    fetchAPI<LineageResponse>(`/api/lineage/${label}/${id}`),
+
+  // RDF & SPARQL
+  sparqlQuery: (query: string) =>
+    fetchAPI<SparqlResult>(`/api/rdf/sparql?query=${encodeURIComponent(query)}`),
+  getOntologyVersions: () => fetchAPI<OntologyVersionHistory>("/ontology/versions"),
+  getRdfExportUrl: (format: string = "turtle", label?: string) => {
+    let url = `${API_BASE}/api/rdf/export?format=${format}`;
+    if (label) url += `&label=${label}`;
+    return url;
+  },
+
+  // Reasoning
+  runReasoning: () => fetchAPI<ReasoningResult>("/api/rdf/reasoning"),
+
+  // Document ingestion (uses fetch directly — FormData, not JSON)
+  ingestApiUrl: `${API_BASE}/api/ingest/extract`,
 };

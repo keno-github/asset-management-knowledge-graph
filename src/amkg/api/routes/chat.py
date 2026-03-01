@@ -30,5 +30,8 @@ def chat(request: ChatRequest, neo4j: Neo4jDep) -> dict:
             detail="ANTHROPIC_API_KEY not configured. Set it in .env to enable chat.",
         )
 
-    agent = CypherAgent(neo4j_client=neo4j)
-    return agent.answer(request.question)
+    try:
+        agent = CypherAgent(neo4j_client=neo4j)
+        return agent.answer(request.question)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e)) from e

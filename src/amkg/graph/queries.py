@@ -17,6 +17,7 @@ OPTIONAL MATCH (p)-[:TRACKS]->(b:Benchmark)
 RETURN p.portfolio_id AS portfolio_id, p.name AS name,
        p.asset_class AS asset_class, p.aum AS aum,
        p.morningstar_rating AS morningstar_rating,
+       p.as_of_date AS as_of_date,
        b.name AS benchmark
 ORDER BY p.name
 """
@@ -26,15 +27,20 @@ MATCH (p:Portfolio {portfolio_id: $portfolio_id})
 OPTIONAL MATCH (p)-[:TRACKS]->(b:Benchmark)
 OPTIONAL MATCH (p)-[:MANAGED_BY]->(fm:FundManager)-[:WORKS_FOR]->(e:Entity)
 OPTIONAL MATCH (p)-[:HAS_ESG_SCORE]->(esg:ESGRating)
-RETURN p {.*, benchmark: b.name, benchmark_id: b.benchmark_id,
-          manager: fm.name, entity: e.name,
-          esg_score: esg.overall_score, esg_risk: esg.risk_level}
+RETURN p.portfolio_id AS portfolio_id, p.name AS name,
+       p.asset_class AS asset_class, p.aum AS aum,
+       p.morningstar_rating AS morningstar_rating,
+       p.as_of_date AS as_of_date,
+       b.name AS benchmark, b.benchmark_id AS benchmark_id,
+       fm.name AS manager, e.name AS entity,
+       esg.overall_score AS esg_score, esg.risk_level AS esg_risk
 """
 
 PORTFOLIO_HOLDINGS_WITH_SECTORS = """
 MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[h:HOLDS]->(a:Asset)
 OPTIONAL MATCH (a)-[:BELONGS_TO]->(s:Sector)
 RETURN a.name AS asset_name, a.isin AS isin, h.weight_pct AS weight_pct,
+       h.as_of_date AS as_of_date,
        s.name AS sector, a.country AS country, a.asset_type AS asset_type
 ORDER BY h.weight_pct DESC
 """
@@ -96,20 +102,21 @@ ORDER BY exposure_count DESC
 """
 
 PORTFOLIO_ESG_VS_BENCHMARK = """
-MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[:HAS_ESG_SCORE]->(p_esg:ESGRating)
-MATCH (p)-[:TRACKS]->(b:Benchmark)-[:HAS_ESG_SCORE]->(b_esg:ESGRating)
-RETURN p.name AS portfolio, p_esg.overall_score AS portfolio_esg,
-       b.name AS benchmark, b_esg.overall_score AS benchmark_esg,
-       p_esg.overall_score - b_esg.overall_score AS esg_differential
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+WITH p, AVG(esg.overall_score) AS portfolio_esg
+MATCH (p)-[:TRACKS]->(b:Benchmark)-[:COMPOSED_OF]->(ba:Asset)-[:HAS_ESG_SCORE]->(besg:ESGRating)
+WITH p, portfolio_esg, b, AVG(besg.overall_score) AS benchmark_esg
+RETURN p.name AS portfolio, portfolio_esg,
+       b.name AS benchmark, benchmark_esg,
+       portfolio_esg - benchmark_esg AS esg_differential
 """
 
 EU_TAXONOMY_ALIGNMENT = """
-MATCH (p:Portfolio)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+MATCH (p:Portfolio)-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
 WHERE esg.taxonomy_alignment_pct IS NOT NULL
-RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id,
-       esg.taxonomy_alignment_pct AS taxonomy_pct,
-       esg.overall_score AS esg_score
-ORDER BY esg.taxonomy_alignment_pct DESC
+WITH p, AVG(esg.taxonomy_alignment_pct) AS taxonomy_pct, AVG(esg.overall_score) AS esg_score
+RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id, taxonomy_pct, esg_score
+ORDER BY taxonomy_pct DESC
 """
 
 
@@ -189,10 +196,24 @@ ORDER BY count DESC
 """
 
 SUBGRAPH_AROUND_NODE = """
-MATCH (center {portfolio_id: $node_id})-[r]-(neighbor)
+MATCH (center)-[r]-(neighbor)
+WHERE id(center) = $node_id
 RETURN center {.*, _label: labels(center)[0], _id: id(center)} AS source,
        type(r) AS relationship,
-       r {.*} AS rel_properties,
        neighbor {.*, _label: labels(neighbor)[0], _id: id(neighbor)} AS target
 LIMIT 50
+"""
+
+INITIAL_GRAPH = """
+MATCH (p:Portfolio)-[r:TRACKS]->(b:Benchmark)
+RETURN p {.*, _label: 'Portfolio', _id: id(p)} AS source,
+       type(r) AS relationship,
+       b {.*, _label: 'Benchmark', _id: id(b)} AS target
+"""
+
+SEARCH_NODES = """
+MATCH (n)
+WHERE toLower(n.name) CONTAINS toLower($query)
+RETURN id(n) AS id, labels(n)[0] AS label, n.name AS name
+LIMIT 20
 """

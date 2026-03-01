@@ -6,15 +6,31 @@ Run with:
 
 from __future__ import annotations
 
+import traceback
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from loguru import logger
 
 from amkg import __version__
-from amkg.api.routes import benchmarks, chat, discovery, esg, portfolios
+from amkg.api.routes import (
+    benchmarks,
+    chat,
+    discovery,
+    esg,
+    ingest,
+    lineage,
+    ontology,
+    portfolios,
+    rdf,
+    reasoning,
+    vocabulary,
+)
 from amkg.api.schemas import GraphStats, HealthResponse
+from amkg.config import settings
 from amkg.graph.client import Neo4jClient
 
 
@@ -39,9 +55,14 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
+    origins = (
+        ["*"]
+        if settings.CORS_ORIGINS == "*"
+        else [o.strip() for o in settings.CORS_ORIGINS.split(",")]
+    )
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["http://localhost:3000"],  # Next.js frontend
+        allow_origins=origins,
         allow_methods=["*"],
         allow_headers=["*"],
     )
@@ -52,6 +73,12 @@ def create_app() -> FastAPI:
     app.include_router(esg.router, prefix="/api/esg", tags=["ESG"])
     app.include_router(discovery.router, prefix="/api/discovery", tags=["Discovery"])
     app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
+    app.include_router(ontology.router, tags=["Schema"])
+    app.include_router(lineage.router, prefix="/api/lineage", tags=["Lineage"])
+    app.include_router(vocabulary.router, prefix="/api/vocabulary", tags=["Vocabulary"])
+    app.include_router(rdf.router, prefix="/api/rdf", tags=["RDF"])
+    app.include_router(reasoning.router, prefix="/api/rdf", tags=["RDF"])
+    app.include_router(ingest.router, prefix="/api/ingest", tags=["Ingest"])
 
     # Health and stats endpoints
     @app.get("/health", response_model=HealthResponse, tags=["System"])
@@ -70,6 +97,12 @@ def create_app() -> FastAPI:
         """Return node and relationship counts."""
         neo4j: Neo4jClient = app.state.neo4j
         return neo4j.get_stats()
+
+    @app.exception_handler(Exception)
+    async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+        logger.error(f"Unhandled exception on {request.url}: {exc}")
+        logger.error(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"detail": str(exc)})
 
     return app
 

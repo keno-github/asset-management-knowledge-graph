@@ -25,6 +25,10 @@ dependencies = [
     "loguru>=0.7",
     "python-dotenv>=1.0",
     "requests>=2.31",
+    "rdflib>=7.0",
+    "pdfplumber>=0.11",
+    "owlrl>=6.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]
@@ -55,6 +59,9 @@ select = ["E", "F", "I", "N", "W", "UP", "B", "SIM"]
 [tool.ruff.lint.per-file-ignores]
 "src/amkg/graph/queries.py" = ["E501"]  # Cypher queries are long by nature
 "src/amkg/llm/prompts.py" = ["E501"]   # LLM prompts are long strings by nature
+"src/amkg/api/routes/vocabulary.py" = ["E501"]  # SKOS definitions are long strings
+"src/amkg/pipeline/loader.py" = ["E501"]  # Cypher CASE expressions
+"src/amkg/pipeline/transformers/etf_transformer.py" = ["E501"]  # Regex filter expressions
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

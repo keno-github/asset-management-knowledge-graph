@@ -34,10 +34,13 @@ class Portfolio(BaseModel):
     asset_class: AssetClass
     currency: str = Field(default="EUR", min_length=3, max_length=3)
     inception_date: date | None = None
-    aum: float | None = Field(None, ge=0, description="Assets Under Management in millions EUR")
+    aum: float | None = Field(
+        None, ge=0, description="Assets Under Management (sum of holding market values)"
+    )
     morningstar_category: str | None = None
     morningstar_rating: MorningstarRating | None = None
     domicile: str | None = None
+    as_of_date: date | None = Field(None, description="Holdings valuation date from data source")
     is_active: bool = True
 
 
@@ -68,7 +71,9 @@ class Asset(BaseModel):
 
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    isin: str = Field(..., pattern=r"^[A-Z]{2}[A-Z0-9]{10}$", description="ISIN or synthetic identifier")
+    isin: str = Field(
+        ..., pattern=r"^[A-Z]{2}[A-Z0-9]{10}$", description="ISIN or synthetic identifier"
+    )
     name: str = Field(..., min_length=1)
     ticker: str | None = None
     asset_type: AssetType = AssetType.COMMON_STOCK

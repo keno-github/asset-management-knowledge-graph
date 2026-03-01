@@ -68,7 +68,7 @@ class ETFTransformer:
         asset_class = AssetClass(etf_info["asset_class"])
         has_isin = "ISIN" in df.columns
 
-        # Create Portfolio node
+        # Create Portfolio node (AUM computed after processing holdings)
         result.portfolio = Portfolio(
             portfolio_id=ticker,
             name=etf_info["name"],
@@ -76,6 +76,7 @@ class ETFTransformer:
             currency="EUR",
             inception_date=None,
             aum=None,
+            as_of_date=as_of_date,
             is_active=True,
         )
 
@@ -152,6 +153,13 @@ class ETFTransformer:
 
             if sector_name:
                 result.sectors.add(sector_name)
+
+        # Compute AUM as sum of all holding market values
+        total_market_value = sum(
+            h.market_value for h in result.holdings if h.market_value
+        )
+        if total_market_value > 0 and result.portfolio:
+            result.portfolio.aum = round(total_market_value, 2)
 
         logger.info(
             f"[Transform] {ticker}: {len(result.assets)} assets, "

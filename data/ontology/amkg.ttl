@@ -1,0 +1,349 @@
+@prefix amkg:    <https://w3id.org/amkg/ontology#> .
+@prefix owl:     <http://www.w3.org/2002/07/owl#> .
+@prefix rdf:     <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix schema:  <https://schema.org/> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# Ontology Declaration
+# ============================================================
+
+<https://w3id.org/amkg/ontology>
+    a owl:Ontology ;
+    rdfs:label "Asset Management Knowledge Graph Ontology"@en ;
+    rdfs:comment "Formal OWL ontology for an investment portfolio knowledge graph. Models the relationships between ETF portfolios, their underlying assets, benchmarks, sector classifications, and ESG ratings."@en ;
+    dcterms:creator "AMKG Project" ;
+    dcterms:license <https://opensource.org/licenses/MIT> ;
+    owl:versionInfo "1.0.0" .
+
+# ============================================================
+# Classes
+# ============================================================
+
+amkg:Portfolio
+    a owl:Class ;
+    rdfs:label "Portfolio"@en ;
+    rdfs:comment "An investment portfolio or ETF fund. Each portfolio holds assets, tracks a benchmark, and may have ESG ratings."@en ;
+    rdfs:subClassOf schema:InvestmentFund .
+
+amkg:Asset
+    a owl:Class ;
+    rdfs:label "Asset"@en ;
+    rdfs:comment "A financial instrument (equity, bond, cash, etc.) identified by ISIN. Assets are held by portfolios and classified into sectors."@en ;
+    rdfs:subClassOf schema:FinancialProduct .
+
+amkg:Benchmark
+    a owl:Class ;
+    rdfs:label "Benchmark"@en ;
+    rdfs:comment "A market index or reference benchmark that portfolios track. Composed of constituent assets with weights."@en .
+
+amkg:Sector
+    a owl:Class ;
+    rdfs:label "Sector"@en ;
+    rdfs:comment "An industry sector classification following the Global Industry Classification Standard (GICS). Assets belong to sectors."@en ;
+    rdfs:seeAlso <https://www.msci.com/gics> .
+
+amkg:ESGRating
+    a owl:Class ;
+    rdfs:label "ESG Rating"@en ;
+    rdfs:comment "An Environmental, Social, and Governance rating assigned to an asset. Includes overall score, E/S/G pillar scores, risk level, controversy score, and EU taxonomy alignment."@en .
+
+# ============================================================
+# Datatype Properties — Portfolio
+# ============================================================
+
+amkg:portfolioId
+    a owl:DatatypeProperty ;
+    rdfs:label "portfolio ID"@en ;
+    rdfs:comment "Internal portfolio identifier, typically the ETF ticker symbol."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range xsd:string .
+
+amkg:name
+    a owl:DatatypeProperty ;
+    rdfs:label "name"@en ;
+    rdfs:comment "Human-readable name of the entity."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Portfolio amkg:Asset amkg:Benchmark amkg:Sector amkg:ESGRating ) ] ;
+    rdfs:range xsd:string .
+
+amkg:isin
+    a owl:DatatypeProperty ;
+    rdfs:label "ISIN"@en ;
+    rdfs:comment "International Securities Identification Number (ISO 6166). 12-character alphanumeric code."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Portfolio amkg:Asset ) ] ;
+    rdfs:range xsd:string .
+
+amkg:assetClass
+    a owl:DatatypeProperty ;
+    rdfs:label "asset class"@en ;
+    rdfs:comment "Broad asset classification: Equity, Fixed Income, Money Market, Alternatives, Real Estate, Commodities, Multi Asset."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Portfolio amkg:Benchmark ) ] ;
+    rdfs:range xsd:string .
+
+amkg:currency
+    a owl:DatatypeProperty ;
+    rdfs:label "currency"@en ;
+    rdfs:comment "ISO 4217 three-letter currency code."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Portfolio amkg:Asset amkg:Benchmark ) ] ;
+    rdfs:range xsd:string .
+
+amkg:aum
+    a owl:DatatypeProperty ;
+    rdfs:label "assets under management"@en ;
+    rdfs:comment "Total assets under management, computed as the sum of all holding market values."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range xsd:decimal .
+
+amkg:asOfDate
+    a owl:DatatypeProperty ;
+    rdfs:label "as-of date"@en ;
+    rdfs:comment "Holdings valuation date from the data source."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range xsd:date .
+
+amkg:isActive
+    a owl:DatatypeProperty ;
+    rdfs:label "is active"@en ;
+    rdfs:comment "Whether the portfolio is currently active."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range xsd:boolean .
+
+amkg:domicile
+    a owl:DatatypeProperty ;
+    rdfs:label "domicile"@en ;
+    rdfs:comment "Country of legal domicile for the portfolio."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# Datatype Properties — Asset
+# ============================================================
+
+amkg:ticker
+    a owl:DatatypeProperty ;
+    rdfs:label "ticker"@en ;
+    rdfs:comment "Exchange ticker symbol."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Asset amkg:Benchmark ) ] ;
+    rdfs:range xsd:string .
+
+amkg:assetType
+    a owl:DatatypeProperty ;
+    rdfs:label "asset type"@en ;
+    rdfs:comment "Specific asset type: Common Stock, Corporate Bond, Government Bond, ETF, REIT, Cash, Derivative, Other."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:string .
+
+amkg:country
+    a owl:DatatypeProperty ;
+    rdfs:label "country"@en ;
+    rdfs:comment "ISO 3166-1 alpha-2 country code."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:string .
+
+amkg:exchange
+    a owl:DatatypeProperty ;
+    rdfs:label "exchange"@en ;
+    rdfs:comment "Trading exchange name."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:string .
+
+amkg:marketCap
+    a owl:DatatypeProperty ;
+    rdfs:label "market capitalization"@en ;
+    rdfs:comment "Market capitalization in millions USD."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:decimal .
+
+amkg:sector
+    a owl:DatatypeProperty ;
+    rdfs:label "sector"@en ;
+    rdfs:comment "Denormalized sector label on the asset node. The canonical sector link is the BELONGS_TO relationship."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:string .
+
+amkg:industry
+    a owl:DatatypeProperty ;
+    rdfs:label "industry"@en ;
+    rdfs:comment "Industry classification, finer-grained than sector."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# Datatype Properties — Benchmark
+# ============================================================
+
+amkg:provider
+    a owl:DatatypeProperty ;
+    rdfs:label "provider"@en ;
+    rdfs:comment "Index or rating provider name (e.g., MSCI, STOXX, Bloomberg, Sustainalytics)."@en ;
+    rdfs:domain [ a owl:Class ; owl:unionOf ( amkg:Benchmark amkg:ESGRating ) ] ;
+    rdfs:range xsd:string .
+
+amkg:region
+    a owl:DatatypeProperty ;
+    rdfs:label "region"@en ;
+    rdfs:comment "Geographic region covered by the benchmark."@en ;
+    rdfs:domain amkg:Benchmark ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# Datatype Properties — Sector
+# ============================================================
+
+amkg:sectorId
+    a owl:DatatypeProperty ;
+    rdfs:label "sector ID"@en ;
+    rdfs:comment "Internal sector identifier, formatted as GICS_{SECTOR_NAME}."@en ;
+    rdfs:domain amkg:Sector ;
+    rdfs:range xsd:string .
+
+amkg:classificationSystem
+    a owl:DatatypeProperty ;
+    rdfs:label "classification system"@en ;
+    rdfs:comment "Sector classification standard, e.g., GICS or ICB."@en ;
+    rdfs:domain amkg:Sector ;
+    rdfs:range xsd:string .
+
+amkg:level
+    a owl:DatatypeProperty ;
+    rdfs:label "hierarchy level"@en ;
+    rdfs:comment "Level in the classification hierarchy: 1=Sector, 2=Industry Group, 3=Industry, 4=Sub-Industry."@en ;
+    rdfs:domain amkg:Sector ;
+    rdfs:range xsd:integer .
+
+amkg:skosConceptUri
+    a owl:DatatypeProperty ;
+    rdfs:label "SKOS concept URI"@en ;
+    rdfs:comment "URI linking this sector to its SKOS concept in the controlled vocabulary."@en ;
+    rdfs:domain amkg:Sector ;
+    rdfs:range xsd:anyURI .
+
+# ============================================================
+# Datatype Properties — ESGRating
+# ============================================================
+
+amkg:ratingId
+    a owl:DatatypeProperty ;
+    rdfs:label "rating ID"@en ;
+    rdfs:comment "Internal ESG rating identifier."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:string .
+
+amkg:overallScore
+    a owl:DatatypeProperty ;
+    rdfs:label "overall ESG score"@en ;
+    rdfs:comment "Combined ESG score normalized to 0-10 scale."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:decimal .
+
+amkg:environmentalScore
+    a owl:DatatypeProperty ;
+    rdfs:label "environmental score"@en ;
+    rdfs:comment "Environmental pillar score, 0-10."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:decimal .
+
+amkg:socialScore
+    a owl:DatatypeProperty ;
+    rdfs:label "social score"@en ;
+    rdfs:comment "Social pillar score, 0-10."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:decimal .
+
+amkg:governanceScore
+    a owl:DatatypeProperty ;
+    rdfs:label "governance score"@en ;
+    rdfs:comment "Governance pillar score, 0-10."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:decimal .
+
+amkg:riskLevel
+    a owl:DatatypeProperty ;
+    rdfs:label "ESG risk level"@en ;
+    rdfs:comment "Categorical risk assessment: Negligible, Low, Medium, High, Severe."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:string .
+
+amkg:taxonomyAlignmentPct
+    a owl:DatatypeProperty ;
+    rdfs:label "EU taxonomy alignment"@en ;
+    rdfs:comment "Percentage of revenue aligned with the EU Taxonomy for sustainable activities, 0-100."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:decimal .
+
+amkg:controversyScore
+    a owl:DatatypeProperty ;
+    rdfs:label "controversy score"@en ;
+    rdfs:comment "Controversy involvement score: 0 (severe controversies) to 5 (no controversies)."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:integer .
+
+amkg:ratingDate
+    a owl:DatatypeProperty ;
+    rdfs:label "rating date"@en ;
+    rdfs:comment "Date the ESG rating was issued or last updated."@en ;
+    rdfs:domain amkg:ESGRating ;
+    rdfs:range xsd:date .
+
+# ============================================================
+# Lineage / Provenance Properties (applied to all nodes)
+# ============================================================
+
+amkg:source
+    a owl:DatatypeProperty ;
+    rdfs:label "data source"@en ;
+    rdfs:comment "Provenance tag indicating the data source (e.g., iShares:ETF, Kaggle/Finnhub, yfinance). Stored as _source in Neo4j."@en ;
+    rdfs:range xsd:string .
+
+amkg:ingestedAt
+    a owl:DatatypeProperty ;
+    rdfs:label "ingested at"@en ;
+    rdfs:comment "ISO 8601 timestamp of the pipeline run that wrote this data. Stored as _ingested_at in Neo4j."@en ;
+    rdfs:range xsd:dateTime .
+
+amkg:pipelineRunId
+    a owl:DatatypeProperty ;
+    rdfs:label "pipeline run ID"@en ;
+    rdfs:comment "UUID identifying the specific pipeline execution that created or updated this data. Stored as _pipeline_run_id in Neo4j."@en ;
+    rdfs:range xsd:string .
+
+# ============================================================
+# Object Properties (Relationships)
+# ============================================================
+
+amkg:holds
+    a owl:ObjectProperty ;
+    rdfs:label "holds"@en ;
+    rdfs:comment "A portfolio holds an asset as part of its investment strategy. Edge properties: weight_pct (float, 0-100), market_value (float, fund currency), as_of_date (date)."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range amkg:Asset .
+
+amkg:tracks
+    a owl:ObjectProperty ;
+    rdfs:label "tracks"@en ;
+    rdfs:comment "A portfolio tracks a benchmark index as its performance reference. Edge properties: is_primary (boolean)."@en ;
+    rdfs:domain amkg:Portfolio ;
+    rdfs:range amkg:Benchmark .
+
+amkg:belongsTo
+    a owl:ObjectProperty ;
+    rdfs:label "belongs to"@en ;
+    rdfs:comment "An asset belongs to a sector under a classification system. Edge properties: classification_system (string, default GICS)."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range amkg:Sector .
+
+amkg:composedOf
+    a owl:ObjectProperty ;
+    rdfs:label "composed of"@en ;
+    rdfs:comment "A benchmark is composed of constituent assets. Edge properties: weight_pct (float, 0-100), as_of_date (date)."@en ;
+    rdfs:domain amkg:Benchmark ;
+    rdfs:range amkg:Asset .
+
+amkg:hasESGScore
+    a owl:ObjectProperty ;
+    rdfs:label "has ESG score"@en ;
+    rdfs:comment "An asset has an associated ESG rating. Edge properties: rating_date (date)."@en ;
+    rdfs:domain amkg:Asset ;
+    rdfs:range amkg:ESGRating .

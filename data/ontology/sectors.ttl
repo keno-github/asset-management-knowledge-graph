@@ -1,0 +1,127 @@
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix amkgv:   <https://w3id.org/amkg/vocabulary/sectors#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# Concept Scheme — GICS Level-1 Sectors
+# ============================================================
+
+amkgv:GICSScheme
+    a skos:ConceptScheme ;
+    skos:prefLabel "GICS Sector Classification"@en ;
+    rdfs:comment "The Global Industry Classification Standard (GICS) Level-1 sectors as used in the AMKG knowledge graph pipeline. Alternative labels map variant spellings found in iShares and ESG data sources to canonical GICS names."@en ;
+    dcterms:source <https://www.msci.com/gics> ;
+    dcterms:created "2024-01-01"^^xsd:date ;
+    skos:hasTopConcept
+        amkgv:Energy ,
+        amkgv:Materials ,
+        amkgv:Industrials ,
+        amkgv:ConsumerDiscretionary ,
+        amkgv:ConsumerStaples ,
+        amkgv:HealthCare ,
+        amkgv:Financials ,
+        amkgv:InformationTechnology ,
+        amkgv:CommunicationServices ,
+        amkgv:Utilities ,
+        amkgv:RealEstate .
+
+# ============================================================
+# Top-level Concepts (GICS Level 1 Sectors)
+# ============================================================
+
+amkgv:Energy
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Energy"@en ;
+    skos:altLabel "Oil & Gas"@en ;
+    skos:definition "Companies engaged in exploration, production, refining, and marketing of oil, gas, and consumable fuels."@en ;
+    skos:notation "10" .
+
+amkgv:Materials
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Materials"@en ;
+    skos:altLabel "Basic Materials"@en ;
+    skos:definition "Companies involved in the discovery, development, and processing of raw materials."@en ;
+    skos:notation "15" .
+
+amkgv:Industrials
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Industrials"@en ;
+    skos:definition "Companies providing capital goods, commercial services, and transportation infrastructure."@en ;
+    skos:notation "20" .
+
+amkgv:ConsumerDiscretionary
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Consumer Discretionary"@en ;
+    skos:altLabel "Consumer Cyclical"@en ;
+    skos:definition "Companies providing non-essential goods and services whose demand is sensitive to economic cycles."@en ;
+    skos:notation "25" .
+
+amkgv:ConsumerStaples
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Consumer Staples"@en ;
+    skos:altLabel "Consumer Non-cyclical"@en , "Consumer Defensive"@en ;
+    skos:definition "Companies providing essential everyday products whose demand remains stable regardless of economic conditions."@en ;
+    skos:notation "30" .
+
+amkgv:HealthCare
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Health Care"@en ;
+    skos:altLabel "Healthcare"@en ;
+    skos:definition "Companies in pharmaceuticals, biotechnology, medical devices, and healthcare services."@en ;
+    skos:notation "35" .
+
+amkgv:Financials
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Financials"@en ;
+    skos:definition "Companies providing banking, insurance, asset management, and other financial services."@en ;
+    skos:notation "40" .
+
+amkgv:InformationTechnology
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Information Technology"@en ;
+    skos:altLabel "Technology"@en , "Tech"@en ;
+    skos:definition "Companies in software, hardware, semiconductors, IT services, and electronic equipment."@en ;
+    skos:notation "45" .
+
+amkgv:CommunicationServices
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Communication Services"@en ;
+    skos:altLabel "Communication"@en , "Communications"@en , "Telecommunication Services"@en ;
+    skos:definition "Companies enabling communication and entertainment through media, internet, and telecom services."@en ;
+    skos:notation "50" .
+
+amkgv:Utilities
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Utilities"@en ;
+    skos:definition "Companies providing electric, gas, water, and other utility services, typically regulated."@en ;
+    skos:notation "55" .
+
+amkgv:RealEstate
+    a skos:Concept ;
+    skos:inScheme amkgv:GICSScheme ;
+    skos:topConceptOf amkgv:GICSScheme ;
+    skos:prefLabel "Real Estate"@en ;
+    skos:definition "Companies engaged in real estate investment trusts (REITs) and real estate management and development."@en ;
+    skos:notation "60" .

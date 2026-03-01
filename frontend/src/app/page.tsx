@@ -38,6 +38,11 @@ export default function DashboardPage() {
         </p>
       </div>
 
+      {/* Explainer */}
+      <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+        This dashboard shows the shape of the knowledge graph stored in Neo4j — how many entities (nodes) and connections (relationships) exist, broken down by type. Use the quick links below to explore portfolios, visualize the graph, or ask questions in natural language.
+      </p>
+
       {/* Status Banner */}
       <div className="flex items-center gap-3 px-4 py-3 rounded-lg border border-slate-800 bg-[#0d1321]">
         <div

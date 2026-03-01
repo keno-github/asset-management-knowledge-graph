@@ -72,6 +72,9 @@ export default function ChatPage() {
         <p className="text-sm text-slate-500 mt-1">
           Ask questions about portfolios, assets, and ESG data in natural language
         </p>
+        <p className="text-xs text-slate-500 mt-2 leading-relaxed max-w-2xl">
+          Your question is sent to Claude, which translates it into a Cypher query, executes it against the Neo4j knowledge graph, and formats the results into a plain-language answer. Expand the Cypher block on any response to see the exact query that ran.
+        </p>
       </div>
 
       {/* Messages Area */}

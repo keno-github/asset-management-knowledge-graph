@@ -30,6 +30,9 @@ class Settings(BaseSettings):
     # LLM (Claude)
     ANTHROPIC_API_KEY: str = ""
 
+    # CORS (comma-separated origins, or "*" for dev)
+    CORS_ORIGINS: str = "*"
+
     # Pipeline
     DATA_DIR: Path = Path("data")
     CACHE_TTL_HOURS: int = 24

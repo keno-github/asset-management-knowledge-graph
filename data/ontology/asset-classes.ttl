@@ -1,0 +1,83 @@
+@prefix skos:    <http://www.w3.org/2004/02/skos/core#> .
+@prefix amkgv:   <https://w3id.org/amkg/vocabulary/asset-classes#> .
+@prefix rdfs:    <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix xsd:     <http://www.w3.org/2001/XMLSchema#> .
+@prefix dcterms: <http://purl.org/dc/terms/> .
+
+# ============================================================
+# Concept Scheme — Asset Class Taxonomy
+# ============================================================
+
+amkgv:AssetClassScheme
+    a skos:ConceptScheme ;
+    skos:prefLabel "Asset Class Taxonomy"@en ;
+    rdfs:comment "Broad asset classification used for portfolios and benchmarks in the AMKG knowledge graph."@en ;
+    dcterms:created "2024-01-01"^^xsd:date ;
+    skos:hasTopConcept
+        amkgv:Equity ,
+        amkgv:FixedIncome ,
+        amkgv:MoneyMarket ,
+        amkgv:Alternatives ,
+        amkgv:RealEstate ,
+        amkgv:Commodities ,
+        amkgv:MultiAsset .
+
+# ============================================================
+# Concepts
+# ============================================================
+
+amkgv:Equity
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Equity"@en ;
+    skos:altLabel "Equities"@en , "Stocks"@en , "Shares"@en ;
+    skos:definition "Ownership stakes in companies, including common and preferred stock."@en .
+
+amkgv:FixedIncome
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Fixed Income"@en ;
+    skos:altLabel "Bonds"@en , "Debt"@en , "Fixed Interest"@en ;
+    skos:definition "Debt instruments including government bonds, corporate bonds, and other fixed-interest securities."@en .
+
+amkgv:MoneyMarket
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Money Market"@en ;
+    skos:altLabel "Cash Equivalents"@en ;
+    skos:definition "Short-term, highly liquid debt instruments with maturities typically under one year."@en .
+
+amkgv:Alternatives
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Alternatives"@en ;
+    skos:altLabel "Alternative Investments"@en ;
+    skos:definition "Non-traditional investments including hedge funds, private equity, and structured products."@en .
+
+amkgv:RealEstate
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Real Estate"@en ;
+    skos:altLabel "Property"@en , "REITs"@en ;
+    skos:definition "Real estate investment trusts and direct property investments."@en .
+
+amkgv:Commodities
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Commodities"@en ;
+    skos:altLabel "Raw Materials"@en ;
+    skos:definition "Physical goods and natural resources including precious metals, energy, and agricultural products."@en .
+
+amkgv:MultiAsset
+    a skos:Concept ;
+    skos:inScheme amkgv:AssetClassScheme ;
+    skos:topConceptOf amkgv:AssetClassScheme ;
+    skos:prefLabel "Multi Asset"@en ;
+    skos:altLabel "Multi-Asset"@en , "Balanced"@en , "Mixed"@en ;
+    skos:definition "Strategies combining multiple asset classes within a single portfolio allocation."@en .

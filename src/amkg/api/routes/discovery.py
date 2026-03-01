@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
 from amkg.api.deps import Neo4jDep
 from amkg.graph import queries as q
@@ -48,6 +48,18 @@ def graph_overview(neo4j: Neo4jDep) -> list[dict]:
 
 
 @router.get("/subgraph/{node_id}")
-def subgraph(node_id: str, neo4j: Neo4jDep) -> list[dict]:
+def subgraph(node_id: int, neo4j: Neo4jDep) -> list[dict]:
     """Get the immediate neighborhood of a node (for visualization)."""
     return neo4j.run_query(q.SUBGRAPH_AROUND_NODE, {"node_id": node_id})
+
+
+@router.get("/initial-graph")
+def initial_graph(neo4j: Neo4jDep) -> list[dict]:
+    """Starting graph view — all portfolios with their benchmarks."""
+    return neo4j.run_query(q.INITIAL_GRAPH)
+
+
+@router.get("/search-nodes")
+def search_nodes(neo4j: Neo4jDep, search: str = Query(alias="q")) -> list[dict]:
+    """Search nodes by name across all types."""
+    return neo4j.run_query(q.SEARCH_NODES, {"query": search})

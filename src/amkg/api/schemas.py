@@ -15,6 +15,7 @@ class PortfolioSummary(BaseModel):
     asset_class: str | None = None
     aum: float | None = None
     morningstar_rating: int | None = None
+    as_of_date: str | None = None
     benchmark: str | None = None
 
 
@@ -24,6 +25,7 @@ class PortfolioDetail(BaseModel):
     asset_class: str | None = None
     aum: float | None = None
     morningstar_rating: int | None = None
+    as_of_date: str | None = None
     benchmark: str | None = None
     benchmark_id: str | None = None
     manager: str | None = None
@@ -36,6 +38,7 @@ class HoldingResponse(BaseModel):
     asset_name: str
     isin: str | None = None
     weight_pct: float
+    as_of_date: str | None = None
     sector: str | None = None
     country: str | None = None
     asset_type: str | None = None

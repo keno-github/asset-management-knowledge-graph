@@ -39,6 +39,11 @@ export default function ESGPage() {
         </p>
       </div>
 
+      {/* Explainer */}
+      <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">
+        These analytics traverse Portfolio → Asset → ESGRating relationships in the graph to surface sustainability risks that span multiple funds — the kind of multi-hop analysis that&apos;s natural in a knowledge graph but hard in SQL.
+      </p>
+
       {/* Tabs */}
       <div className="flex gap-1 p-1 rounded-lg bg-[#0d1321] border border-slate-800 w-fit">
         {tabs.map((tab) => (
@@ -88,7 +93,11 @@ function CrossRiskView({ data }: { data: ESGCrossRisk[] }) {
   };
 
   return (
-    <div className="rounded-xl border border-slate-800 bg-[#0d1321] overflow-hidden">
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 leading-relaxed">
+        Assets with High or Severe ESG risk that appear in more than one portfolio — highlighting systemic concentration risk. If one ESG scandal hits, these are the assets that would affect multiple funds simultaneously.
+      </p>
+      <div className="rounded-xl border border-slate-800 bg-[#0d1321] overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-slate-800">
@@ -125,6 +134,7 @@ function CrossRiskView({ data }: { data: ESGCrossRisk[] }) {
         </tbody>
       </table>
     </div>
+    </div>
   );
 }
 
@@ -136,7 +146,11 @@ function ControversyView({ data }: { data: ESGControversy[] }) {
   const maxCount = Math.max(...data.map((d) => d.count), 1);
 
   return (
-    <div className="grid gap-4">
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 leading-relaxed">
+        Portfolios ranked by how many controversial assets they hold (controversy score &le; 3 on a 0-5 scale, where 0 is severe). The bar shows relative exposure and the chips list the specific controversial holdings.
+      </p>
+      <div className="grid gap-4">
       {data.map((item) => (
         <div key={item.portfolio_id} className="rounded-xl border border-slate-800 bg-[#0d1321] p-5">
           <div className="flex justify-between items-start">
@@ -174,6 +188,7 @@ function ControversyView({ data }: { data: ESGControversy[] }) {
         </div>
       ))}
     </div>
+    </div>
   );
 }
 
@@ -183,7 +198,11 @@ function TaxonomyView({ data }: { data: TaxonomyAlignment[] }) {
   }
 
   return (
-    <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    <div className="space-y-3">
+      <p className="text-xs text-slate-500 leading-relaxed">
+        EU Taxonomy alignment measures what percentage of a portfolio&apos;s holdings qualify as environmentally sustainable under the EU taxonomy framework. Higher is better — averaged across each portfolio&apos;s assets.
+      </p>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       {data.map((item) => (
         <div key={item.portfolio_id} className="rounded-xl border border-slate-800 bg-[#0d1321] p-5">
           <h3 className="text-sm font-medium text-slate-200 truncate">{item.portfolio}</h3>
@@ -216,6 +235,7 @@ function TaxonomyView({ data }: { data: TaxonomyAlignment[] }) {
           </div>
         </div>
       ))}
+    </div>
     </div>
   );
 }
