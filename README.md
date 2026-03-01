@@ -4,7 +4,7 @@ A full-stack knowledge graph for investment management. Models relationships bet
 
 Built on formal semantic web standards — OWL 2 ontology, SKOS controlled vocabularies, RDF export, SPARQL querying, and OWL-RL reasoning — with a Claude-powered natural language interface and unstructured document ingestion pipeline.
 
-**Live:** [omoghakeno.dev](https://omoghakeno.dev)
+**Live:** [amkg.omoghakeno.dev](https://amkg.omoghakeno.dev)
 
 **Author:** Keno Omogha
 
@@ -319,7 +319,7 @@ The app runs on three services:
 
 | Component | Platform | URL |
 |-----------|----------|-----|
-| Frontend | Vercel | [omoghakeno.dev](https://omoghakeno.dev) |
+| Frontend | Vercel | [amkg.omoghakeno.dev](https://amkg.omoghakeno.dev) |
 | Backend | Render | API endpoint |
 | Database | Neo4j Aura | Managed cloud instance |
 
