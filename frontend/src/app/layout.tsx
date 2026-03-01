@@ -20,7 +20,7 @@ export default function RootLayout({
       <body className={`${inter.variable} ${mono.variable} font-sans antialiased bg-[#0a0e17] text-slate-200 min-h-screen`}>
         <div className="flex min-h-screen">
           <Sidebar />
-          <main className="flex-1 ml-64 p-8">
+          <main className="flex-1 p-4 pt-16 lg:ml-64 lg:p-8 lg:pt-8">
             {children}
           </main>
         </div>
