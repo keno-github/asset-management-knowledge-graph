@@ -262,6 +262,14 @@ class PipelineOrchestrator:
             stats = client.get_stats()
             counts["graph_stats"] = stats
 
+            # Include the valuation date from loaded portfolios
+            val_dates = sorted(
+                {str(p.as_of_date) for p in all_portfolios if p.as_of_date},
+                reverse=True,
+            )
+            if val_dates:
+                counts["valuation_date"] = val_dates[0]
+
             return counts
 
         finally:

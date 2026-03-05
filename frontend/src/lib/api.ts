@@ -23,6 +23,7 @@ import type {
   OntologySummary,
   OntologyVersionHistory,
   PeerOverlap,
+  PipelineRun,
   PortfolioDetail,
   PortfolioSummary,
   ReasoningResult,
@@ -99,6 +100,8 @@ export const api = {
   // Pipeline
   refreshPipeline: () => fetchAPI<{ status: string }>("/api/pipeline/refresh", { method: "POST" }),
   pipelineStatus: () => fetchAPI<{ running: boolean; last_result: Record<string, unknown> | null; last_error: string | null }>("/api/pipeline/status"),
+  getPipelineHistory: () => fetchAPI<PipelineRun[]>("/api/pipeline/history"),
+  getPipelineRun: (runId: string) => fetchAPI<PipelineRun>(`/api/pipeline/history/${runId}`),
 
   // Document ingestion (uses fetch directly — FormData, not JSON)
   ingestApiUrl: `${API_BASE}/api/ingest/extract`,

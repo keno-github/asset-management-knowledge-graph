@@ -237,3 +237,45 @@ UNWIND p.valuation_dates AS d
 RETURN DISTINCT d AS valuation_date
 ORDER BY valuation_date DESC
 """
+
+# ============================================================
+# PIPELINE RUN HISTORY
+# ============================================================
+
+CREATE_PIPELINE_RUN = """
+CREATE (r:PipelineRun {
+  run_id: $run_id,
+  started_at: $started_at,
+  completed_at: $completed_at,
+  duration_seconds: $duration_seconds,
+  status: $status,
+  fetch_files: $fetch_files,
+  fetch_records: $fetch_records,
+  transform_etfs: $transform_etfs,
+  transform_assets: $transform_assets,
+  transform_holdings: $transform_holdings,
+  validate_pass_rate: $validate_pass_rate,
+  validate_warnings: $validate_warnings,
+  validate_errors: $validate_errors,
+  load_portfolios: $load_portfolios,
+  load_assets: $load_assets,
+  load_sectors: $load_sectors,
+  load_holds: $load_holds,
+  load_esg_ratings: $load_esg_ratings,
+  valuation_date: $valuation_date,
+  error_message: $error_message
+})
+RETURN r.run_id AS run_id
+"""
+
+LIST_PIPELINE_RUNS = """
+MATCH (r:PipelineRun)
+RETURN r {.*} AS run
+ORDER BY r.started_at DESC
+LIMIT 50
+"""
+
+GET_PIPELINE_RUN = """
+MATCH (r:PipelineRun {run_id: $run_id})
+RETURN r {.*} AS run
+"""

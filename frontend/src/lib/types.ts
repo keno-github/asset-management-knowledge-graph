@@ -184,6 +184,29 @@ export interface PipelineStatus {
   last_error: string | null;
 }
 
+export interface PipelineRun {
+  run_id: string;
+  started_at: string;
+  completed_at: string;
+  duration_seconds: number;
+  status: "success" | "failed";
+  fetch_files: number;
+  fetch_records: number;
+  transform_etfs: number;
+  transform_assets: number;
+  transform_holdings: number;
+  validate_pass_rate: string;
+  validate_warnings: number;
+  validate_errors: number;
+  load_portfolios: number;
+  load_assets: number;
+  load_sectors: number;
+  load_holds: number;
+  load_esg_ratings: number;
+  valuation_date: string | null;
+  error_message: string | null;
+}
+
 export interface ValuationDate {
   valuation_date: string;
 }

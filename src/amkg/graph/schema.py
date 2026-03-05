@@ -21,6 +21,7 @@ INDEXES = [
     "CREATE INDEX IF NOT EXISTS FOR (r:RatingProvider) ON (r.provider_id)",
     "CREATE INDEX IF NOT EXISTS FOR (esg:ESGRating) ON (esg.rating_id)",
     "CREATE INDEX IF NOT EXISTS FOR (pr:PerformanceRecord) ON (pr.record_id)",
+    "CREATE INDEX IF NOT EXISTS FOR (pr:PipelineRun) ON (pr.run_id)",
 ]
 
 CONSTRAINTS = [

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
-import type { GraphStats } from "@/lib/types";
+import type { GraphStats, PipelineRun } from "@/lib/types";
 
 interface HealthData {
   status: string;
@@ -16,12 +16,14 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+  const [lastRun, setLastRun] = useState<PipelineRun | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const loadData = useCallback(() => {
-    Promise.allSettled([api.health(), api.stats()]).then(([h, s]) => {
+    Promise.allSettled([api.health(), api.stats(), api.getPipelineHistory()]).then(([h, s, p]) => {
       if (h.status === "fulfilled") setHealth(h.value);
       if (s.status === "fulfilled") setStats(s.value);
+      if (p.status === "fulfilled" && p.value.length > 0) setLastRun(p.value[0]);
       setLoading(false);
     });
   }, []);
@@ -142,6 +144,33 @@ export default function DashboardPage() {
         <KPICard label="Node Types" value={nodeEntries.length} loading={loading} />
         <KPICard label="Rel Types" value={relEntries.length} loading={loading} />
       </div>
+
+      {/* Last Pipeline Run */}
+      {lastRun && (
+        <Link
+          href="/pipeline"
+          className="block rounded-xl border border-slate-800 bg-[#0d1321] p-5 hover:border-sky-800 hover:bg-sky-950/10 transition-colors"
+        >
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <h3 className="text-sm font-medium text-slate-300">Last Pipeline Run</h3>
+              <span className={`inline-block px-2 py-0.5 rounded text-xs font-medium ${
+                lastRun.status === "success"
+                  ? "bg-emerald-500/10 text-emerald-400"
+                  : "bg-red-500/10 text-red-400"
+              }`}>
+                {lastRun.status}
+              </span>
+            </div>
+            <span className="text-xs text-slate-600">View all runs &rarr;</span>
+          </div>
+          <div className="flex gap-6 mt-2 text-xs text-slate-500">
+            <span>{new Date(lastRun.started_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" })}</span>
+            <span>{lastRun.duration_seconds < 60 ? `${Math.round(lastRun.duration_seconds)}s` : `${Math.floor(lastRun.duration_seconds / 60)}m ${Math.round(lastRun.duration_seconds % 60)}s`}</span>
+            <span>{lastRun.load_assets} assets, {lastRun.load_holds} holdings</span>
+          </div>
+        </Link>
+      )}
 
       {/* Node & Relationship Breakdown */}
       <div className="grid lg:grid-cols-2 gap-6">
