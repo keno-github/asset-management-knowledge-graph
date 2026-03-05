@@ -131,7 +131,7 @@ export default function DashboardPage() {
             ? "Connecting to Neo4j..."
             : health?.neo4j_connected
               ? "Neo4j connected"
-              : "Neo4j disconnected — start with docker compose up -d"}
+              : "Neo4j disconnected — database may be waking up, try refreshing in a moment"}
         </span>
       </div>
 
