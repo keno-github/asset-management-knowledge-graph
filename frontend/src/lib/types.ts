@@ -176,6 +176,18 @@ export interface ReasoningResult {
   };
 }
 
+// Pipeline types
+
+export interface PipelineStatus {
+  running: boolean;
+  last_result: Record<string, unknown> | null;
+  last_error: string | null;
+}
+
+export interface ValuationDate {
+  valuation_date: string;
+}
+
 // Document ingestion types
 
 export interface ExtractedPortfolio {

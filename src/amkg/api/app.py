@@ -24,6 +24,7 @@ from amkg.api.routes import (
     ingest,
     lineage,
     ontology,
+    pipeline,
     portfolios,
     rdf,
     reasoning,
@@ -79,6 +80,7 @@ def create_app() -> FastAPI:
     app.include_router(rdf.router, prefix="/api/rdf", tags=["RDF"])
     app.include_router(reasoning.router, prefix="/api/rdf", tags=["RDF"])
     app.include_router(ingest.router, prefix="/api/ingest", tags=["Ingest"])
+    app.include_router(pipeline.router, prefix="/api/pipeline", tags=["Pipeline"])
 
     # Health and stats endpoints
     @app.get("/health", response_model=HealthResponse, tags=["System"])

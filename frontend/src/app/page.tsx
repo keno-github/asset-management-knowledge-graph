@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import type { GraphStats } from "@/lib/types";
@@ -14,14 +14,64 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<GraphStats | null>(null);
   const [health, setHealth] = useState<HealthData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshMsg, setRefreshMsg] = useState<string | null>(null);
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const loadData = useCallback(() => {
     Promise.allSettled([api.health(), api.stats()]).then(([h, s]) => {
       if (h.status === "fulfilled") setHealth(h.value);
       if (s.status === "fulfilled") setStats(s.value);
       setLoading(false);
     });
   }, []);
+
+  useEffect(() => { loadData(); }, [loadData]);
+
+  // Clean up polling interval on unmount
+  useEffect(() => {
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    setRefreshMsg(null);
+    try {
+      const res = await api.refreshPipeline();
+      if (res.status === "already_running") {
+        setRefreshMsg("Pipeline is already running");
+        setRefreshing(false);
+        return;
+      }
+      // Poll for completion
+      pollRef.current = setInterval(async () => {
+        try {
+          const status = await api.pipelineStatus();
+          if (!status.running) {
+            if (pollRef.current) clearInterval(pollRef.current);
+            pollRef.current = null;
+            setRefreshing(false);
+            if (status.last_error) {
+              setRefreshMsg(`Error: ${status.last_error}`);
+            } else {
+              setRefreshMsg("Data refreshed successfully");
+              loadData();
+            }
+          }
+        } catch {
+          if (pollRef.current) clearInterval(pollRef.current);
+          pollRef.current = null;
+          setRefreshing(false);
+          setRefreshMsg("Failed to check pipeline status");
+        }
+      }, 3000);
+    } catch {
+      setRefreshing(false);
+      setRefreshMsg("Failed to start pipeline");
+    }
+  };
 
   const nodeEntries = stats ? Object.entries(stats.nodes) : [];
   const relEntries = stats ? Object.entries(stats.relationships) : [];
@@ -31,12 +81,38 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-slate-500 mt-1">
-          Knowledge graph overview and system status
-        </p>
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Knowledge graph overview and system status
+          </p>
+        </div>
+        <button
+          onClick={handleRefresh}
+          disabled={refreshing}
+          className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-sm font-medium disabled:opacity-50 transition-colors flex items-center gap-2"
+        >
+          {refreshing && (
+            <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+            </svg>
+          )}
+          {refreshing ? "Refreshing..." : "Refresh Data"}
+        </button>
       </div>
+
+      {/* Refresh status message */}
+      {refreshMsg && (
+        <div className={`px-4 py-2.5 rounded-lg text-sm ${
+          refreshMsg.startsWith("Error") || refreshMsg.startsWith("Failed")
+            ? "bg-red-500/10 text-red-400 border border-red-500/20"
+            : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+        }`}>
+          {refreshMsg}
+        </div>
+      )}
 
       {/* Explainer */}
       <p className="text-xs text-slate-500 leading-relaxed max-w-2xl">

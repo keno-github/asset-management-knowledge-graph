@@ -38,6 +38,7 @@ RETURN p.portfolio_id AS portfolio_id, p.name AS name,
 
 PORTFOLIO_HOLDINGS_WITH_SECTORS = """
 MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[h:HOLDS]->(a:Asset)
+WHERE ($as_of_date IS NULL OR h.as_of_date = $as_of_date)
 OPTIONAL MATCH (a)-[:BELONGS_TO]->(s:Sector)
 RETURN a.name AS asset_name, a.isin AS isin, h.weight_pct AS weight_pct,
        h.as_of_date AS as_of_date,
@@ -67,8 +68,10 @@ ORDER BY peer.morningstar_rating DESC
 """
 
 PEER_HOLDING_OVERLAP = """
-MATCH (p1:Portfolio {portfolio_id: $portfolio_id})-[:HOLDS]->(a:Asset)<-[:HOLDS]-(p2:Portfolio)
+MATCH (p1:Portfolio {portfolio_id: $portfolio_id})-[h1:HOLDS]->(a:Asset)<-[h2:HOLDS]-(p2:Portfolio)
 WHERE p1 <> p2
+  AND ($as_of_date IS NULL OR h1.as_of_date = $as_of_date)
+  AND ($as_of_date IS NULL OR h2.as_of_date = $as_of_date)
 WITH p2, COLLECT(a.name) AS shared_holdings, COUNT(a) AS overlap_count
 RETURN p2.name AS peer, p2.portfolio_id AS peer_id,
        overlap_count, shared_holdings
@@ -82,8 +85,9 @@ LIMIT 10
 # ============================================================
 
 ESG_CONTROVERSY_EXPOSURE = """
-MATCH (p:Portfolio)-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+MATCH (p:Portfolio)-[h:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
 WHERE esg.controversy_score <= $max_controversy
+  AND ($as_of_date IS NULL OR h.as_of_date = $as_of_date)
 WITH p, COLLECT(DISTINCT a.name) AS controversial_assets, COUNT(a) AS count
 RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id, count, controversial_assets
 ORDER BY count DESC
@@ -93,7 +97,8 @@ ESG_CROSS_PORTFOLIO_RISK = """
 MATCH (a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
 WHERE esg.risk_level IN ['High', 'Severe']
 WITH a, esg
-MATCH (p:Portfolio)-[:HOLDS]->(a)
+MATCH (p:Portfolio)-[h:HOLDS]->(a)
+WHERE ($as_of_date IS NULL OR h.as_of_date = $as_of_date)
 WITH a.name AS asset, a.isin AS isin, esg.risk_level AS risk,
      COLLECT(DISTINCT p.name) AS exposed_portfolios
 WHERE SIZE(exposed_portfolios) > 1
@@ -102,9 +107,11 @@ ORDER BY exposure_count DESC
 """
 
 PORTFOLIO_ESG_VS_BENCHMARK = """
-MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+MATCH (p:Portfolio {portfolio_id: $portfolio_id})-[h:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+WHERE ($as_of_date IS NULL OR h.as_of_date = $as_of_date)
 WITH p, AVG(esg.overall_score) AS portfolio_esg
-MATCH (p)-[:TRACKS]->(b:Benchmark)-[:COMPOSED_OF]->(ba:Asset)-[:HAS_ESG_SCORE]->(besg:ESGRating)
+MATCH (p)-[:TRACKS]->(b:Benchmark)-[c:COMPOSED_OF]->(ba:Asset)-[:HAS_ESG_SCORE]->(besg:ESGRating)
+WHERE ($as_of_date IS NULL OR c.as_of_date = $as_of_date)
 WITH p, portfolio_esg, b, AVG(besg.overall_score) AS benchmark_esg
 RETURN p.name AS portfolio, portfolio_esg,
        b.name AS benchmark, benchmark_esg,
@@ -112,8 +119,9 @@ RETURN p.name AS portfolio, portfolio_esg,
 """
 
 EU_TAXONOMY_ALIGNMENT = """
-MATCH (p:Portfolio)-[:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
+MATCH (p:Portfolio)-[h:HOLDS]->(a:Asset)-[:HAS_ESG_SCORE]->(esg:ESGRating)
 WHERE esg.taxonomy_alignment_pct IS NOT NULL
+  AND ($as_of_date IS NULL OR h.as_of_date = $as_of_date)
 WITH p, AVG(esg.taxonomy_alignment_pct) AS taxonomy_pct, AVG(esg.overall_score) AS esg_score
 RETURN p.name AS portfolio, p.portfolio_id AS portfolio_id, taxonomy_pct, esg_score
 ORDER BY taxonomy_pct DESC
@@ -216,4 +224,16 @@ MATCH (n)
 WHERE toLower(n.name) CONTAINS toLower($query)
 RETURN id(n) AS id, labels(n)[0] AS label, n.name AS name
 LIMIT 20
+"""
+
+# ============================================================
+# VALUATION DATE DISCOVERY
+# ============================================================
+
+LIST_VALUATION_DATES = """
+MATCH (p:Portfolio)
+WHERE p.valuation_dates IS NOT NULL
+UNWIND p.valuation_dates AS d
+RETURN DISTINCT d AS valuation_date
+ORDER BY valuation_date DESC
 """

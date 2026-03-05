@@ -61,7 +61,12 @@ SET p.name = row.name,
     p.is_active = row.is_active,
     p._source = row._source,
     p._ingested_at = row._ingested_at,
-    p._pipeline_run_id = row._pipeline_run_id
+    p._pipeline_run_id = row._pipeline_run_id,
+    p.valuation_dates = CASE
+      WHEN p.valuation_dates IS NULL THEN [row.as_of_date]
+      WHEN NOT row.as_of_date IN p.valuation_dates THEN p.valuation_dates + row.as_of_date
+      ELSE p.valuation_dates
+    END
 """
 
 MERGE_BENCHMARKS = """
@@ -124,10 +129,9 @@ MERGE_HOLDS = """
 UNWIND $batch AS row
 MATCH (p:Portfolio {portfolio_id: row.portfolio_id})
 MATCH (a:Asset {isin: row.isin})
-MERGE (p)-[r:HOLDS]->(a)
+MERGE (p)-[r:HOLDS {as_of_date: row.as_of_date}]->(a)
 SET r.weight_pct = row.weight_pct,
     r.market_value = row.market_value,
-    r.as_of_date = row.as_of_date,
     r._source = row._source,
     r._ingested_at = row._ingested_at,
     r._pipeline_run_id = row._pipeline_run_id
@@ -159,9 +163,8 @@ MERGE_COMPOSED_OF = """
 UNWIND $batch AS row
 MATCH (b:Benchmark {benchmark_id: row.benchmark_id})
 MATCH (a:Asset {isin: row.isin})
-MERGE (b)-[r:COMPOSED_OF]->(a)
+MERGE (b)-[r:COMPOSED_OF {as_of_date: row.as_of_date}]->(a)
 SET r.weight_pct = row.weight_pct,
-    r.as_of_date = row.as_of_date,
     r._source = row._source,
     r._ingested_at = row._ingested_at,
     r._pipeline_run_id = row._pipeline_run_id

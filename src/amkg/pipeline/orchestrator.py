@@ -37,10 +37,15 @@ class PipelineOrchestrator:
         steps: list[str] | None = None,
         data_dir: Path | None = None,
         skip_yfinance: bool = False,
+        cache_ttl_override: int | None = None,
     ) -> None:
         self.steps = steps or ["all"]
         self.data_dir = data_dir or settings.DATA_DIR
         self.skip_yfinance = skip_yfinance
+        self.cache_ttl = (
+            cache_ttl_override if cache_ttl_override is not None
+            else settings.CACHE_TTL_HOURS
+        )
         self._transform_results: list[ETFTransformResult] = []
         self.run_id: str = str(uuid.uuid4())
         self.ingested_at: str = datetime.now(timezone.utc).isoformat()
@@ -88,7 +93,7 @@ class PipelineOrchestrator:
     def _fetch(self) -> dict:
         """Step 1: Download raw data from all sources."""
         ishares = ISharesFetcher(
-            self.data_dir, cache_ttl_hours=settings.CACHE_TTL_HOURS
+            self.data_dir, cache_ttl_hours=self.cache_ttl
         )
         results = ishares.fetch()
         return {

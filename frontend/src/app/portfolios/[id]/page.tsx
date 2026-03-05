@@ -14,20 +14,37 @@ export default function PortfolioDetailPage() {
   const [loading, setLoading] = useState(true);
   const [sortKey, setSortKey] = useState<"weight_pct" | "asset_name">("weight_pct");
   const [sortAsc, setSortAsc] = useState(false);
+  const [availableDates, setAvailableDates] = useState<string[]>([]);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
+  // Initial load: portfolio profile + valuation dates
   useEffect(() => {
     if (!id) return;
     Promise.allSettled([
       api.getPortfolio(id),
-      api.getHoldings(id),
-      api.getPeerOverlap(id),
-    ]).then(([p, h, pr]) => {
+      api.getValuationDates(),
+    ]).then(([p, d]) => {
       if (p.status === "fulfilled") setPortfolio(p.value);
-      if (h.status === "fulfilled") setHoldings(h.value);
-      if (pr.status === "fulfilled") setPeers(pr.value);
+      if (d.status === "fulfilled") {
+        const dates = d.value.map((v) => v.valuation_date).filter(Boolean);
+        setAvailableDates(dates);
+        if (dates.length > 0) setSelectedDate(dates[0]); // latest date
+      }
       setLoading(false);
     });
   }, [id]);
+
+  // Fetch holdings and peers when selected date changes
+  useEffect(() => {
+    if (!id || selectedDate === null) return;
+    Promise.allSettled([
+      api.getHoldings(id, selectedDate),
+      api.getPeerOverlap(id, selectedDate),
+    ]).then(([h, pr]) => {
+      if (h.status === "fulfilled") setHoldings(h.value);
+      if (pr.status === "fulfilled") setPeers(pr.value);
+    });
+  }, [id, selectedDate]);
 
   const sorted = [...holdings].sort((a, b) => {
     const mul = sortAsc ? 1 : -1;
@@ -129,6 +146,28 @@ export default function PortfolioDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Valuation Date Picker */}
+      {availableDates.length > 0 && (
+        <div className="rounded-xl border border-slate-800 bg-[#0d1321] p-4">
+          <p className="text-xs text-slate-500 uppercase tracking-wider mb-3">Valuation Date</p>
+          <div className="flex gap-2 flex-wrap">
+            {availableDates.map((d) => (
+              <button
+                key={d}
+                onClick={() => setSelectedDate(d)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono transition-colors ${
+                  d === selectedDate
+                    ? "bg-sky-600 text-white"
+                    : "bg-slate-800 text-slate-400 hover:bg-slate-700"
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Holdings Table */}

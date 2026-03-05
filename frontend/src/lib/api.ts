@@ -39,8 +39,15 @@ export const api = {
   // Portfolios
   listPortfolios: () => fetchAPI<PortfolioSummary[]>("/api/portfolios/"),
   getPortfolio: (id: string) => fetchAPI<PortfolioDetail>(`/api/portfolios/${id}`),
-  getHoldings: (id: string) => fetchAPI<Holding[]>(`/api/portfolios/${id}/holdings`),
-  getPeerOverlap: (id: string) => fetchAPI<PeerOverlap[]>(`/api/portfolios/${id}/peer-overlap`),
+  getHoldings: (id: string, asOfDate?: string) => {
+    const params = asOfDate ? `?as_of_date=${asOfDate}` : "";
+    return fetchAPI<Holding[]>(`/api/portfolios/${id}/holdings${params}`);
+  },
+  getPeerOverlap: (id: string, asOfDate?: string) => {
+    const params = asOfDate ? `?as_of_date=${asOfDate}` : "";
+    return fetchAPI<PeerOverlap[]>(`/api/portfolios/${id}/peer-overlap${params}`);
+  },
+  getValuationDates: () => fetchAPI<{ valuation_date: string }[]>("/api/portfolios/valuation-dates"),
 
   // ESG
   esgControversy: (max: number = 2) =>
@@ -88,6 +95,10 @@ export const api = {
 
   // Reasoning
   runReasoning: () => fetchAPI<ReasoningResult>("/api/rdf/reasoning"),
+
+  // Pipeline
+  refreshPipeline: () => fetchAPI<{ status: string }>("/api/pipeline/refresh", { method: "POST" }),
+  pipelineStatus: () => fetchAPI<{ running: boolean; last_result: Record<string, unknown> | null; last_error: string | null }>("/api/pipeline/status"),
 
   // Document ingestion (uses fetch directly — FormData, not JSON)
   ingestApiUrl: `${API_BASE}/api/ingest/extract`,
