@@ -493,6 +493,13 @@ export default function GraphExplorerPage() {
               nodeColor={(node: any) => NODE_COLORS[node.group] ?? "#64748b"}
               nodeRelSize={6}
               nodeCanvasObject={renderNode}
+              nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
+                const r = NODE_SIZES[node.group] ?? 4;
+                ctx.beginPath();
+                ctx.arc(node.x ?? 0, node.y ?? 0, r + 4, 0, 2 * Math.PI);
+                ctx.fillStyle = color;
+                ctx.fill();
+              }}
               linkCanvasObject={renderLink}
               linkDirectionalArrowLength={0}
               onNodeClick={handleNodeClick}
