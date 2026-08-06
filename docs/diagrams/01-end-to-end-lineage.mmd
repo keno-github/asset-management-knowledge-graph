@@ -1,0 +1,57 @@
+flowchart TB
+    subgraph SRC["1 · External sources"]
+        ISH["iShares ETF site<br/>8 UCITS ETF holdings"]
+        YF["Yahoo Finance<br/>via yfinance"]
+        KG["Kaggle ESG dataset"]
+    end
+
+    subgraph RAW["2 · Raw landing — data/raw (file cache + TTL)"]
+        RISH["ishares/*_holdings.csv"]
+        RYF["yfinance/*.json"]
+        RESG["esg/data.csv"]
+    end
+
+    subgraph XF["3 · Transform (Python: src/amkg/pipeline)"]
+        ETF["ETFTransformer<br/>CSV → Portfolio · Asset · Holding · Benchmark · Sector"]
+        ENR["YFinanceEnricher<br/>adds sector · industry · market_cap · country"]
+        ESGX["ESGTransformer<br/>Kaggle match + sector-based ESG synthesis"]
+    end
+
+    subgraph VAL["4 · Validate — validators/quality.py"]
+        Q["quality checks<br/>ISIN format · weight sums · outliers"]
+    end
+
+    subgraph LD["5 · Load — GraphLoader (batch UNWIND + MERGE)"]
+        L["MERGE nodes &amp; relationships<br/>stamp provenance on every entity"]
+    end
+
+    NEO[("Neo4j<br/>knowledge graph")]
+
+    subgraph SEM["6 · Semantic layer (src/amkg/rdf)"]
+        RDF["RDF export · in-memory SPARQL"]
+        OWL["OWL-RL deductive reasoning"]
+        VOC["OWL 2 ontology · SKOS vocabularies"]
+    end
+
+    subgraph SV["7 · Serve"]
+        API["FastAPI — 11 route modules"]
+        UI["Next.js frontend"]
+        CHAT["Claude agent<br/>NL → Cypher → answer"]
+    end
+
+    ISH --> RISH --> ETF
+    YF --> RYF --> ENR
+    KG --> RESG --> ESGX
+    ETF -->|holdings + entities| Q
+    ESGX -->|ESG ratings| Q
+    Q -->|validated| L
+    ENR -->|enrichment| L
+    L --> NEO
+    NEO --> RDF
+    NEO --> OWL
+    NEO --> VOC
+    NEO --> API
+    RDF --> API
+    API --> UI
+    API --> CHAT
+    CHAT -->|read-only Cypher| NEO

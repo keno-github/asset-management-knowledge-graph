@@ -1,0 +1,40 @@
+erDiagram
+    PORTFOLIO }o--o{ ASSET     : HOLDS
+    PORTFOLIO }o--|| BENCHMARK : TRACKS
+    BENCHMARK }o--o{ ASSET     : COMPOSED_OF
+    ASSET     }o--|| SECTOR    : BELONGS_TO
+    ASSET     ||--o{ ESGRATING : HAS_ESG_SCORE
+
+    PORTFOLIO {
+        string portfolio_id PK
+        string name
+        string isin
+        string asset_class
+        float  aum
+        int    morningstar_rating
+    }
+    ASSET {
+        string isin PK
+        string name
+        string ticker
+        string sector
+        float  market_cap
+        string country
+    }
+    BENCHMARK {
+        string benchmark_id PK
+        string name
+        string provider
+        string asset_class
+    }
+    SECTOR {
+        string sector_id PK
+        string name
+        string classification_system
+    }
+    ESGRATING {
+        string rating_id PK
+        string entity_id FK "= Asset.isin"
+        float  overall_score "0-10, higher = better ESG"
+        string risk_level "Negligible..Severe"
+    }

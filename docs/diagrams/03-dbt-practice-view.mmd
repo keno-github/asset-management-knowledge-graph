@@ -1,0 +1,45 @@
+flowchart LR
+    subgraph RAW["Raw (landed in DuckDB)"]
+        r1["raw_ishares_holdings"]
+        r2["raw_yfinance"]
+        r3["raw_esg"]
+    end
+    subgraph STG["staging — stg_ (1:1 clean + typed)"]
+        s1["stg_ishares__holdings"]
+        s2["stg_yfinance__securities"]
+        s3["stg_esg__scores"]
+    end
+    subgraph INT["intermediate — int_ (business logic)"]
+        i1["int_assets_deduped"]
+        i2["int_sectors_harmonized<br/>(SKOS altLabels)"]
+        i3["int_holdings_with_esg"]
+    end
+    subgraph MART["marts — graph-ready dims &amp; facts"]
+        m1["dim_portfolio"]
+        m2["dim_asset"]
+        m3["dim_sector"]
+        m4["fct_holdings"]
+        m5["fct_esg"]
+    end
+    LOADER["graph_loader<br/>reads marts → Cypher MERGE"]
+    NEO[("Neo4j")]
+
+    r1 --> s1
+    r2 --> s2
+    r3 --> s3
+    s1 --> i1
+    s2 --> i1
+    s1 --> i2
+    s1 --> i3
+    s3 --> i3
+    s1 --> m1
+    i1 --> m2
+    i2 --> m3
+    i3 --> m4
+    i3 --> m5
+    m1 --> LOADER
+    m2 --> LOADER
+    m3 --> LOADER
+    m4 --> LOADER
+    m5 --> LOADER
+    LOADER --> NEO

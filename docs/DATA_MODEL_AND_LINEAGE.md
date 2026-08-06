@@ -6,6 +6,10 @@ would slot in if the Python transform layer were rebuilt as an ELT project.
 
 All diagrams are [Mermaid](https://mermaid.js.org/) and render directly on GitHub.
 
+> **Downloadable renders** (PNG / SVG / PDF) live in [`docs/diagrams/`](diagrams/) — one
+> file per diagram, e.g. `01-end-to-end-lineage.png`. Use the PNGs to feed a diagram to an
+> LLM; the `.mmd` sources next to them regenerate the images.
+
 ---
 
 ## 1. End-to-end data lineage
