@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: amkg-api
+    name: asset-management-knowledge-graph
     runtime: python
     rootDir: .
     buildCommand: pip install .
