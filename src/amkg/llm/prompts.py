@@ -69,8 +69,13 @@ The Cypher query executed was:
 The results from the database:
 {results}
 
+Interpretation notes:
+- ESG overall_score is on a 0-10 scale where HIGHER = better ESG and LOWER = higher ESG risk.
+- The query already encodes the ordering for the question (e.g. ORDER BY avg score ASC surfaces the highest-risk portfolios first). Trust the query's ordering and describe the returned rows as-is — do NOT re-derive or second-guess the sort direction.
+
 Provide a clear, professional answer based on these results:
 - Include specific names, numbers, and percentages
+- Lead with the direct answer to the question
 - If results are empty, say so and suggest what the user might try instead
 - Keep it concise (2-5 sentences) but informative
 - Use asset management terminology naturally
