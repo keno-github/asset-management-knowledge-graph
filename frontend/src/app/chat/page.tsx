@@ -10,6 +10,19 @@ interface Message {
   data?: ChatResponse;
 }
 
+const MAX_HISTORY_TURNS = 6;
+
+/** Pair completed user->assistant messages into turns for follow-up context. */
+function buildHistory(msgs: Message[]): { question: string; answer: string }[] {
+  const turns: { question: string; answer: string }[] = [];
+  for (let i = 0; i < msgs.length - 1; i++) {
+    if (msgs[i].role === "user" && msgs[i + 1].role === "assistant") {
+      turns.push({ question: msgs[i].content, answer: msgs[i + 1].content });
+    }
+  }
+  return turns.slice(-MAX_HISTORY_TURNS);
+}
+
 const EXAMPLE_QUESTIONS = [
   "Which portfolios have the highest ESG risk?",
   "What are the top 10 most held assets across all portfolios?",
@@ -32,14 +45,16 @@ export default function ChatPage() {
   const sendMessage = useCallback(async (question: string) => {
     if (!question.trim() || loading) return;
 
-    const userMsg: Message = { role: "user", content: question.trim() };
+    const trimmed = question.trim();
+    const history = buildHistory(messages);
+    const userMsg: Message = { role: "user", content: trimmed };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setLoading(true);
     setTimeout(scrollToBottom, 50);
 
     try {
-      const response = await api.chat(question.trim());
+      const response = await api.chat(trimmed, history);
       const assistantMsg: Message = {
         role: "assistant",
         content: response.answer,
@@ -56,7 +71,7 @@ export default function ChatPage() {
 
     setLoading(false);
     setTimeout(scrollToBottom, 50);
-  }, [loading]);
+  }, [loading, messages]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {

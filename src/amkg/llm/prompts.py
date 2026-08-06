@@ -50,15 +50,20 @@ in this dataset — do not build queries that depend on them (they return nothin
 """
 
 CYPHER_GENERATION_PROMPT = """{schema_context}
-
+{history_block}
 Given the user question below, generate a Cypher query to answer it.
+If the question is a follow-up that refers to the conversation above (e.g. "yes",
+"why", "break it down by region", "those", "the second one", "and by sector?"),
+use the history to resolve exactly what it means, then generate a COMPLETE,
+standalone Cypher query for the resolved intent. Do not reference earlier queries —
+always regenerate the full query.
 Return ONLY the Cypher query, nothing else. No explanation, no markdown fences.
 
 User question: {question}
 """
 
 ANSWER_FORMATTING_PROMPT = """You are a knowledgeable asset management analyst explaining knowledge graph query results to a portfolio manager.
-
+{history_block}
 The user asked: "{question}"
 
 The Cypher query executed was:
@@ -79,5 +84,5 @@ Provide a clear, professional answer based on these results:
 - If results are empty, say so and suggest what the user might try instead
 - Keep it concise (2-5 sentences) but informative
 - Use asset management terminology naturally
-- This is a SINGLE-TURN interface with no memory of previous questions. Do NOT offer to "pull more if you ask", promise follow-up work, or reference prior turns. If more detail is available, end by suggesting one specific, self-contained question the user could ask next (e.g. "Ask: 'What is the asset-class breakdown of all portfolios?'").
+- This is a conversational interface: the user may ask follow-ups that build on the conversation above, so answer this turn naturally in that context (resolve references like "those" or "yes" using the history). But each answer is still produced from one query — do NOT promise to do work asynchronously or say "let me know and I'll pull that". If more detail would help, end by suggesting one specific question the user could ask next (e.g. "Ask: 'What is the asset-class breakdown of all portfolios?'").
 """

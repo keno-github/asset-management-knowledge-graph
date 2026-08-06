@@ -85,12 +85,24 @@ class GraphStats(BaseModel):
     relationships: dict[str, int]
 
 
+class ChatTurn(BaseModel):
+    """One prior exchange in the conversation, used to resolve follow-ups."""
+
+    question: str
+    answer: str
+
+
 class ChatRequest(BaseModel):
     question: str = Field(
         ...,
         min_length=2,
         max_length=500,
         examples=["Which portfolios have the highest ESG risk?"],
+    )
+    history: list[ChatTurn] = Field(
+        default_factory=list,
+        max_length=20,
+        description="Prior turns (oldest first) so follow-up questions can be resolved.",
     )
 
 

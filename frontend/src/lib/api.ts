@@ -72,10 +72,10 @@ export const api = {
     ),
 
   // Chat
-  chat: (question: string) =>
+  chat: (question: string, history: { question: string; answer: string }[] = []) =>
     fetchAPI<ChatResponse>("/api/chat/", {
       method: "POST",
-      body: JSON.stringify({ question }),
+      body: JSON.stringify({ question, history }),
     }),
 
   // Ontology & Vocabulary

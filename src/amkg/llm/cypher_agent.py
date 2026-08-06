@@ -17,6 +17,34 @@ from amkg.graph.client import Neo4jClient
 from amkg.llm.guardrails import validate_cypher
 from amkg.llm.prompts import ANSWER_FORMATTING_PROMPT, CYPHER_GENERATION_PROMPT, SCHEMA_CONTEXT
 
+# Keep the conversation window bounded so follow-up context stays cheap.
+_MAX_HISTORY_TURNS = 6
+_MAX_ANSWER_CHARS = 500
+
+
+def _format_history(history: list | None) -> str:
+    """Render recent turns into a prompt block. Empty string when there is none.
+
+    Accepts ChatTurn-like objects (``.question`` / ``.answer``) or dicts, so the
+    agent stays decoupled from the API schema types.
+    """
+    if not history:
+        return ""
+
+    def field(turn: object, name: str) -> str:
+        value = turn.get(name) if isinstance(turn, dict) else getattr(turn, name, "")
+        return str(value or "").strip()
+
+    lines = [
+        "",
+        "## Conversation so far (oldest first — use it to resolve follow-up references):",
+    ]
+    for turn in history[-_MAX_HISTORY_TURNS:]:
+        lines.append(f"User: {field(turn, 'question')}")
+        lines.append(f"Assistant: {field(turn, 'answer')[:_MAX_ANSWER_CHARS]}")
+    lines.append("")
+    return "\n".join(lines)
+
 
 class CypherAgent:
     """Translates natural language questions into Cypher queries and answers.
@@ -32,7 +60,7 @@ class CypherAgent:
         self.anthropic = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
         self.model = "claude-sonnet-5"
 
-    def _generate_cypher(self, question: str) -> str:
+    def _generate_cypher(self, question: str, history_block: str = "") -> str:
         """Step 1: Generate Cypher from natural language."""
         response = self.anthropic.messages.create(
             model=self.model,
@@ -42,7 +70,9 @@ class CypherAgent:
                 {
                     "role": "user",
                     "content": CYPHER_GENERATION_PROMPT.format(
-                        schema_context=SCHEMA_CONTEXT, question=question
+                        schema_context=SCHEMA_CONTEXT,
+                        history_block=history_block,
+                        question=question,
                     ),
                 }
             ],
@@ -59,7 +89,9 @@ class CypherAgent:
 
         return cypher
 
-    def _format_answer(self, question: str, cypher: str, results: list[dict]) -> str:
+    def _format_answer(
+        self, question: str, cypher: str, results: list[dict], history_block: str = ""
+    ) -> str:
         """Step 3: Format raw results into a human-readable answer."""
         response = self.anthropic.messages.create(
             model=self.model,
@@ -69,6 +101,7 @@ class CypherAgent:
                 {
                     "role": "user",
                     "content": ANSWER_FORMATTING_PROMPT.format(
+                        history_block=history_block,
                         question=question,
                         cypher=cypher,
                         results=str(results[:25]),
@@ -78,16 +111,21 @@ class CypherAgent:
         )
         return response.content[0].text.strip()
 
-    def answer(self, question: str) -> dict:
+    def answer(self, question: str, history: list | None = None) -> dict:
         """Full pipeline: question -> cypher -> execute -> answer.
+
+        Args:
+            question: The user's (possibly follow-up) question.
+            history: Prior turns (oldest first) so follow-ups can be resolved.
 
         Returns:
             Dict with question, cypher_query, raw_results, answer, confidence.
         """
         logger.info(f"[CypherAgent] Question: {question}")
+        history_block = _format_history(history)
 
-        # Step 1: Generate Cypher
-        cypher = self._generate_cypher(question)
+        # Step 1: Generate Cypher (history lets follow-ups resolve references)
+        cypher = self._generate_cypher(question, history_block)
         logger.info(f"[CypherAgent] Generated Cypher: {cypher}")
 
         # Step 2: Validate (read-only enforcement)
@@ -110,7 +148,7 @@ class CypherAgent:
             }
 
         # Step 4: Format answer
-        answer = self._format_answer(question, cypher, results)
+        answer = self._format_answer(question, cypher, results, history_block)
         logger.info(f"[CypherAgent] Answer generated ({len(results)} results)")
 
         return {
