@@ -46,6 +46,10 @@ Built on formal semantic web standards — OWL 2 ontology, SKOS controlled vocab
                     └───────────────────────────────────────────────┘
 ```
 
+📊 **[Data model, lineage & transformation diagrams →](docs/DATA_MODEL_AND_LINEAGE.md)** —
+Mermaid diagrams of the end-to-end lineage, the graph data model, every transformation, and
+where dbt would fit.
+
 ---
 
 ## Features
