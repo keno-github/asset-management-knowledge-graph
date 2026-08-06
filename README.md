@@ -189,6 +189,7 @@ make ui
 |--------|------|-------------|
 | `GET` | `/health` | Health check + Neo4j connectivity |
 | `GET` | `/stats` | Node and relationship counts |
+| `GET` | `/keepalive` | Anti-idle ping (runs a trivial query to keep managed instances awake) |
 | `GET` | `/api/portfolios/` | List all portfolios |
 | `GET` | `/api/portfolios/{id}` | Portfolio detail with benchmark and ESG |
 | `GET` | `/api/portfolios/{id}/holdings` | Holdings with sector classifications |

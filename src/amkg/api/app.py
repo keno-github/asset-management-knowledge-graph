@@ -100,6 +100,24 @@ def create_app() -> FastAPI:
         neo4j: Neo4jClient = app.state.neo4j
         return neo4j.get_stats()
 
+    @app.get("/keepalive", tags=["System"])
+    def keepalive() -> dict:
+        """Anti-idle endpoint for uptime monitors.
+
+        Runs a trivial Cypher query so the ping registers as real database
+        activity — this is what prevents managed free-tier instances (e.g.
+        Neo4j Aura Free) from auto-pausing after a few idle days. Always
+        returns HTTP 200 so the monitor does not flap during cold starts;
+        the body reflects whether the database round-trip succeeded.
+        """
+        neo4j: Neo4jClient = app.state.neo4j
+        try:
+            neo4j.run_query("RETURN 1 AS ok")
+            return {"status": "ok", "neo4j": True}
+        except Exception as exc:  # noqa: BLE001 - never fail the ping
+            logger.warning(f"keepalive query failed: {exc}")
+            return {"status": "degraded", "neo4j": False}
+
     @app.exception_handler(Exception)
     async def global_exception_handler(request: Request, exc: Exception) -> JSONResponse:
         logger.error(f"Unhandled exception on {request.url}: {exc}")
