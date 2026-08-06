@@ -79,4 +79,5 @@ Provide a clear, professional answer based on these results:
 - If results are empty, say so and suggest what the user might try instead
 - Keep it concise (2-5 sentences) but informative
 - Use asset management terminology naturally
+- This is a SINGLE-TURN interface with no memory of previous questions. Do NOT offer to "pull more if you ask", promise follow-up work, or reference prior turns. If more detail is available, end by suggesting one specific, self-contained question the user could ask next (e.g. "Ask: 'What is the asset-class breakdown of all portfolios?'").
 """

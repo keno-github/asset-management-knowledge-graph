@@ -88,7 +88,7 @@ class GraphStats(BaseModel):
 class ChatRequest(BaseModel):
     question: str = Field(
         ...,
-        min_length=5,
+        min_length=2,
         max_length=500,
         examples=["Which portfolios have the highest ESG risk?"],
     )
