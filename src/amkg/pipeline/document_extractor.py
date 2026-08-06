@@ -18,7 +18,7 @@ from pydantic import BaseModel
 
 from amkg.config import settings
 
-_MODEL = "claude-sonnet-4-20250514"
+_MODEL = "claude-sonnet-5"
 _MAX_TEXT_LENGTH = 30_000  # Truncate to avoid token limits
 
 _EXTRACTION_PROMPT = """\
@@ -156,6 +156,7 @@ def extract_entities_from_text(text: str) -> ExtractionResult:
     response = client.messages.create(
         model=_MODEL,
         max_tokens=4096,
+        thinking={"type": "disabled"},
         messages=[
             {
                 "role": "user",

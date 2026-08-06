@@ -30,13 +30,14 @@ class CypherAgent:
     def __init__(self, neo4j_client: Neo4jClient) -> None:
         self.neo4j = neo4j_client
         self.anthropic = Anthropic(api_key=settings.ANTHROPIC_API_KEY)
-        self.model = "claude-sonnet-4-20250514"
+        self.model = "claude-sonnet-5"
 
     def _generate_cypher(self, question: str) -> str:
         """Step 1: Generate Cypher from natural language."""
         response = self.anthropic.messages.create(
             model=self.model,
             max_tokens=1024,
+            thinking={"type": "disabled"},
             messages=[
                 {
                     "role": "user",
@@ -63,6 +64,7 @@ class CypherAgent:
         response = self.anthropic.messages.create(
             model=self.model,
             max_tokens=1024,
+            thinking={"type": "disabled"},
             messages=[
                 {
                     "role": "user",

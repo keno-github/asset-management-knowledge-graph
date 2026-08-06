@@ -114,7 +114,7 @@ async def extract_and_ingest(
         "status": "success",
         "source_type": source_type,
         "text_length": len(doc_text),
-        "extraction_model": "claude-sonnet-4-20250514",
+        "extraction_model": "claude-sonnet-5",
         "entities": {
             "portfolios": [p.model_dump(mode="json") for p in extraction.portfolios],
             "holdings": [h.model_dump(mode="json") for h in extraction.holdings],

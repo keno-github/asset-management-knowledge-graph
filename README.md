@@ -114,7 +114,7 @@ Built on formal semantic web standards — OWL 2 ontology, SKOS controlled vocab
 |-------|-----------|
 | Graph Database | Neo4j 5.x |
 | Backend | Python 3.10+, FastAPI, Pydantic v2 |
-| LLM | Anthropic Claude (Sonnet 4) |
+| LLM | Anthropic Claude (Sonnet 5) |
 | Semantic Web | rdflib 7, owlrl 6, OWL 2 / SKOS / Turtle |
 | Document Parsing | pdfplumber |
 | Frontend | React 19, Next.js 16, TypeScript, Tailwind CSS |
