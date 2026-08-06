@@ -86,10 +86,15 @@ class GraphStats(BaseModel):
 
 
 class ChatTurn(BaseModel):
-    """One prior exchange in the conversation, used to resolve follow-ups."""
+    """One prior exchange in the conversation, used to resolve follow-ups.
 
-    question: str
-    answer: str
+    Both fields are client-supplied and therefore untrusted; the length caps
+    bound history size (cost/abuse), and the agent treats the content as data,
+    not instructions, when building the prompt.
+    """
+
+    question: str = Field(max_length=500)
+    answer: str = Field(max_length=4000)
 
 
 class ChatRequest(BaseModel):
